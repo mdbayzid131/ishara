@@ -8,11 +8,7 @@ import {
   CheckCircle,
   Truck,
   Phone,
-  Package,
-  Calendar,
   MapPin,
-  ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 
 interface StoredOrder {
@@ -45,31 +41,33 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     if (orderId) {
-      try {
-        const stored = sessionStorage.getItem(`order_${orderId}`);
-        if (stored) {
-          setOrder(JSON.parse(stored));
-        } else {
-          // Fallback if accessed directly
-          setOrder({
-            orderNumber: orderId,
-            customer: {
-              name: 'Valued Customer',
-              phone: '01XXXXXXXXX',
-              address: 'Dhaka, Bangladesh',
-              deliveryZone: 'Inside Dhaka',
-            },
-            items: [],
-            subtotal: 0,
-            deliveryFee: 70,
-            grandTotal: 70,
-            paymentMethod: 'Cash on Delivery (COD)',
-            createdAt: '2026-10-12T16:00:00.000Z',
-          });
+      const timer = setTimeout(() => {
+        try {
+          const stored = sessionStorage.getItem(`order_${orderId}`);
+          if (stored) {
+            setOrder(JSON.parse(stored));
+          } else {
+            setOrder({
+              orderNumber: orderId,
+              customer: {
+                name: 'Valued Customer',
+                phone: '01XXXXXXXXX',
+                address: 'Dhaka, Bangladesh',
+                deliveryZone: 'Inside Dhaka',
+              },
+              items: [],
+              subtotal: 0,
+              deliveryFee: 70,
+              grandTotal: 70,
+              paymentMethod: 'Cash on Delivery (COD)',
+              createdAt: '2026-10-12T16:00:00.000Z',
+            });
+          }
+        } catch (e) {
+          console.error(e);
         }
-      } catch (e) {
-        console.error(e);
-      }
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [orderId]);
 

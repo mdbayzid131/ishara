@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Package,
-  Search,
-  CheckCircle2,
-  Clock,
-  Truck,
-  MapPin,
-  AlertCircle,
-  Phone,
-} from 'lucide-react';
+import { Search, AlertCircle, Phone } from 'lucide-react';
 
 interface TrackingResult {
   orderNumber: string;

@@ -1,5 +1,4 @@
 import React from 'react';
-import { RotateCcw, CheckCircle2, Phone } from 'lucide-react';
 
 export default function ReturnRefundPolicyPage() {
   return (

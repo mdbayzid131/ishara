@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, CheckCircle2, ShieldCheck, Truck, Headphones } from 'lucide-react';
+import { ChevronDown, CheckCircle2, ShieldCheck, Headphones } from 'lucide-react';
 
 const FAQS = [
   {

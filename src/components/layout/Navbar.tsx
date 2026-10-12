@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ShoppingBag, Search, Menu, X, Phone, Truck, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { CATEGORIES } from '@/data/mockProducts';
 
 export default function Navbar() {
+  const router = useRouter();
   const { totalItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,7 +125,8 @@ export default function Navbar() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (searchQuery.trim()) {
-                  window.location.href = `/shop?q=${encodeURIComponent(searchQuery.trim())}`;
+                  router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+                  setIsSearchOpen(false);
                 }
               }}
               className="relative max-w-2xl mx-auto flex items-center"

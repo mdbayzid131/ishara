@@ -5,15 +5,12 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  ShieldCheck,
   Truck,
   CreditCard,
   Lock,
   ArrowRight,
   ShoppingBag,
-  CheckCircle2,
   AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { DELIVERY_ZONES, FREE_SHIPPING_THRESHOLD } from '@/config/delivery';

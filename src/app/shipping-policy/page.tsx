@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ShieldCheck, Clock, MapPin } from 'lucide-react';
+import { Truck, MapPin } from 'lucide-react';
 
 export default function ShippingPolicyPage() {
   return (

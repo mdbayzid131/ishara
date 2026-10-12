@@ -16,7 +16,6 @@ import {
   Minus,
   ChevronRight,
   PackageCheck,
-  Phone,
 } from 'lucide-react';
 import { PRODUCTS } from '@/data/mockProducts';
 import { useCart } from '@/context/CartContext';
@@ -62,13 +61,13 @@ function ProductDetailContent() {
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <nav className="flex items-center gap-1.5 text-xs text-[#8c7e83]">
-          <a href="/" className="hover:text-[#b45f77] transition-colors">
+          <Link href="/" className="hover:text-[#b45f77] transition-colors">
             Home
-          </a>
+          </Link>
           <ChevronRight className="w-3 h-3" />
-          <a href="/shop" className="hover:text-[#b45f77] transition-colors">
+          <Link href="/shop" className="hover:text-[#b45f77] transition-colors">
             Shop
-          </a>
+          </Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-[#201a1c] font-medium truncate max-w-xs">
             {product.title}
