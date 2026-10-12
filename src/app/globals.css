@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #fdf5f7;
+  --color-primary-100: #fae8ed;
+  --color-primary-200: #f5d4dc;
+  --color-primary-300: #ebb3c2;
+  --color-primary-400: #dc8ba0;
+  --color-primary-500: #b45f77;
+  --color-primary-600: #9e4a62;
+  --color-primary-700: #843a50;
+  --color-primary-800: #6f3344;
+  --color-primary-900: #5d2e3b;
+  --color-primary-950: #381621;
+
+  --color-gold-50: #faf7f2;
+  --color-gold-100: #f4ecdf;
+  --color-gold-200: #e7d8be;
+  --color-gold-300: #d6be96;
+  --color-gold-400: #c5a880;
+  --color-gold-500: #b39268;
+  --color-gold-600: #9b7952;
+  --color-gold-700: #7c5e3f;
+
+  --color-cream-50: #fdfcfb;
+  --color-cream-100: #faf6f2;
+  --color-cream-200: #f3ede6;
+  --color-cream-300: #e8ded4;
+
+  --color-charcoal-900: #201a1c;
+  --color-charcoal-800: #2c2527;
+  --color-charcoal-700: #3d3437;
+  --color-charcoal-500: #6b5e62;
+  --color-charcoal-400: #8c7e83;
+  --color-charcoal-200: #ded5d7;
+}
+
+:root {
+  --background: #faf6f2;
+  --foreground: #201a1c;
+  --card-bg: #ffffff;
+  --border-color: #efe8e1;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Utilities for Luxury Store Aesthetics */
+.luxury-gradient {
+  background: linear-gradient(135deg, #b45f77 0%, #843a50 100%);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #d6be96 0%, #c5a880 100%);
+}
+
+.card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(180, 95, 119, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -4px rgba(180, 95, 119, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for category tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,0 +1,251 @@
+# ISHARA E-COMMERCE — ARCHITECTURE & IMPLEMENTATION PLAN
+
+## Executive Overview
+**Ishara** is an elegant, mobile-first, high-converting custom e-commerce platform tailored for the Bangladesh market, focusing on ladies' accessories, fashion jewelry, and premium gadgets. It is engineered with a Next.js (App Router) + TypeScript stack, backed by MongoDB Atlas, styled with Tailwind CSS, and optimized for Facebook/Instagram social ad conversions with streamlined Cash on Delivery (COD) guest checkout.
+
+---
+
+## 1. Architecture Plan
+
+### Monolithic Full-Stack Architecture with Clean Domain Separation
+The application uses Next.js App Router as a unified, low-overhead full-stack platform:
+- **Presentation Layer (Storefront)**: Responsive, mobile-first server and client components under `src/app/(store)/`
+- **Presentation Layer (Admin Backoffice)**: Protected administrative interface under `src/app/admin/`
+- **Application & API Layer**: Secure Next.js Route Handlers under `src/app/api/`
+- **Service & Domain Layer**: Decoupled domain services (`src/services/`) for catalog, inventory, order processing, delivery, and auth. This ensures business logic remains independent from HTTP handlers, making future extraction to a separate microservice trivial if scaling demands it.
+- **Data Persistence Layer**: MongoDB Atlas accessed via Mongoose with cached connection pooling optimized for serverless and Node.js environments.
+- **Media Asset Storage**: Cloudinary with responsive URL transformations and WebP/AVIF auto-formatting.
+- **Marketing & Tracking**: Consent-aware Meta Pixel client helper with server-side UTM parameter persistence in orders.
+
+### High-Level Component Flow
+```
+[ Customer / Mobile Browser ] ──(HTTPS)──> [ Next.js Storefront ]
+                                                    │
+                                         (Server Actions / Route Handlers)
+                                                    │
+                                                    ▼
+                                          [ Domain Service Layer ]
+                                          ├── Product & Variant Service
+                                          ├── Inventory & Concurrency Service
+                                          ├── Order & COD Engine
+                                          └── Auth & Security Service
+                                                    │
+                                                    ▼
+                                         [ MongoDB Atlas (Mongoose) ]
+```
+
+---
+
+## 2. Requirements and Assumptions
+
+### Core Business & Technical Requirements
+1. **Target Market**: Bangladesh consumers shopping via mobile smartphones from Facebook & Instagram advertisements.
+2. **Language & Currency**: English storefront with BDT (৳) currency.
+3. **Primary Payment**: Cash on Delivery (COD). No mandatory online payment gateway upfront, saving integration costs and transaction fees.
+4. **Checkout UX**: Frictionless 1-step guest checkout requiring minimal form fields (Name, Phone Number, Delivery Zone, Full Address).
+5. **Variant Inventory**: Color, size, and style variants with independent SKU, price overrides, and atomic stock counts.
+6. **Order Fulfillment**: Manual workflow initially (Pending → Confirmed → Shipped → Delivered/Cancelled/Returned) with courier tracking metadata (Pathao, Steadfast, RedX).
+7. **Social Landing Pages**: Dedicated high-converting Product Detail Pages (PDP) acting as primary ad landing pages, equipped with sticky mobile "Buy Now" triggers.
+
+### Key Assumptions
+- Initial hosting on Vercel with free/standard tier and MongoDB Atlas free/shared tier (M0/M2).
+- Zero third-party paid dependencies initially (no Redis, no external SMS gateway required for day 1; ready for plug-and-play SMS integration).
+- All financial calculations are executed server-side. Frontend calculations are strictly for immediate UI feedback.
+
+---
+
+## 3. Route Map
+
+### 3.1 Storefront (`src/app/(store)/`)
+| Route | Purpose | Key Features |
+|---|---|---|
+| `/` | Storefront Homepage | Hero banners, Curated Categories, Best Sellers, New Arrivals, Trust Badges, FAQ |
+| `/shop` | Product Catalog | Filter by category, price, stock; sort by price/newest/popularity; search bar |
+| `/categories/[slug]` | Category Listing | Category banner, filtered product grid, sub-tags |
+| `/products/[slug]` | Product Details & Ad Landing Page | Image gallery, variant picker, stock counter, sticky mobile Buy Now, COD badge, reviews, FAQs |
+| `/cart` | Shopping Cart | Variant summary, quantity adjustments, live shipping estimation, proceed to checkout |
+| `/checkout` | 1-Step COD Checkout | Guest details form, delivery zone selector, order summary, instant placement |
+| `/order-success/[orderNumber]` | Order Confirmation | Order summary, reference code, tracking instructions, security token protection |
+| `/track-order` | Order Tracking Portal | Lookup by Phone Number + Order Number with live status timeline |
+| `/about`, `/contact`, `/policies/*` | Legal & Informational | Shipping policy, return/exchange terms, privacy policy |
+
+### 3.2 Backoffice (`src/app/admin/`)
+| Route | Purpose | Key Features |
+|---|---|---|
+| `/admin/login` | Staff Authentication | Rate-limited username/password login with secure HTTP-only session cookies |
+| `/admin` | Executive Dashboard | Total sales, pending orders, delivered rate, low stock alerts, quick links |
+| `/admin/products` | Product Catalog Manager | List, search, filter, status toggles (Draft/Published/Archived) |
+| `/admin/products/new` & `/[id]` | Product & Variant Editor | Multi-image uploader, variant SKU/stock matrix, SEO metadata |
+| `/admin/categories` | Category Management | Add/edit categories, icons, display order |
+| `/admin/orders` | Order Processing Center | Filter by status/date/phone, update courier tracking, invoice print |
+| `/admin/orders/[id]` | Order Detail View | Customer details, item snapshot, status timeline, internal admin notes |
+| `/admin/campaigns` | Marketing & UTM Manager | UTM campaign performance tracker, promo banners |
+| `/admin/settings` | Store Configuration | Delivery zone fees (Inside/Outside Dhaka), Meta Pixel ID, store contact |
+
+---
+
+## 4. Database Schema (Mongoose Models)
+
+### 4.1 Product Schema (`Product`)
+- `title`: String (required, indexed)
+- `slug`: String (required, unique, indexed)
+- `sku`: String (optional, unique base SKU)
+- `shortDescription`: String
+- `description`: String (rich markdown/HTML)
+- `category`: ObjectId (ref: 'Category', indexed)
+- `images`: Array of `{ url: String, alt: String, isPrimary: Boolean }`
+- `basePrice`: Number (required, BDT)
+- `compareAtPrice`: Number (optional, for discount badge)
+- `status`: Enum `['draft', 'published', 'archived']` (default: 'published')
+- `hasVariants`: Boolean (default: false)
+- `variants`: Array of:
+  - `_id`: ObjectId
+  - `sku`: String (required, indexed)
+  - `name`: String (e.g. "Dusty Pink - Large")
+  - `attributes`: Map of String (e.g. `{ color: "Dusty Pink", size: "Large" }`)
+  - `price`: Number (overrides basePrice if set)
+  - `stock`: Number (default: 0)
+  - `image`: String
+- `totalStock`: Number (aggregated for indexing/filtering)
+- `salesCount`: Number (default: 0, for authentic Best Sellers ranking)
+- `isFeatured`: Boolean (default: false)
+- `seo`: `{ title: String, description: String, keywords: [String] }`
+- `createdAt`, `updatedAt`: Timestamps
+
+### 4.2 Category Schema (`Category`)
+- `name`: String (required)
+- `slug`: String (required, unique, indexed)
+- `description`: String
+- `image`: String
+- `sortOrder`: Number (default: 0)
+- `isActive`: Boolean (default: true)
+- `timestamps`: true
+
+### 4.3 Order Schema (`Order`)
+- `orderNumber`: String (required, unique, indexed, e.g. `ISH-2610-8472`)
+- `accessToken`: String (cryptographically secure random token for guest authorization)
+- `customer`:
+  - `name`: String (required)
+  - `phone`: String (required, indexed)
+  - `email`: String (optional)
+  - `address`: String (required)
+  - `deliveryZone`: String (required, e.g. "inside_dhaka" | "outside_dhaka")
+  - `notes`: String
+- `items`: Array of snapshot objects:
+  - `productId`: ObjectId (ref: 'Product')
+  - `variantId`: ObjectId (optional)
+  - `title`: String
+  - `variantName`: String
+  - `sku`: String
+  - `price`: Number
+  - `quantity`: Number
+  - `image`: String
+  - `itemTotal`: Number
+- `pricing`:
+  - `subtotal`: Number
+  - `deliveryFee`: Number
+  - `discount`: Number
+  - `total`: Number
+- `paymentMethod`: String (default: 'COD')
+- `paymentStatus`: Enum `['unpaid', 'paid', 'refunded']` (default: 'unpaid')
+- `status`: Enum `['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned']` (default: 'pending')
+- `courier`:
+  - `provider`: String (e.g. 'Pathao', 'Steadfast', 'RedX', 'Manual')
+  - `trackingCode`: String
+  - `consignmentId`: String
+  - `notes`: String
+- `timeline`: Array of:
+  - `status`: String
+  - `timestamp`: Date
+  - `note`: String
+  - `actor`: String (e.g. 'Customer', 'Admin: Sarah')
+- `marketing`:
+  - `utmSource`: String
+  - `utmMedium`: String
+  - `utmCampaign`: String
+- `timestamps`: true
+
+### 4.4 Admin Schema (`Admin`)
+- `username`: String (required, unique)
+- `email`: String (required, unique)
+- `passwordHash`: String (required)
+- `name`: String
+- `role`: Enum `['superadmin', 'manager']`
+- `isActive`: Boolean (default: true)
+- `lastLogin`: Date
+
+### 4.5 StoreSettings Schema (`StoreSettings`)
+- `storeName`: String (default: "Ishara")
+- `tagline`: String
+- `contactPhone`: String
+- `contactEmail`: String
+- `address`: String
+- `deliveryZones`: Array of:
+  - `code`: String (e.g. 'inside_dhaka')
+  - `name`: String (e.g. "Inside Dhaka")
+  - `fee`: Number (e.g. 70)
+  - `estimatedDays`: String (e.g. "1-2 days")
+- `metaPixelId`: String
+- `freeShippingThreshold`: Number
+- `codNotice`: String
+
+---
+
+## 5. API Specification
+
+| Endpoint | Method | Access | Description |
+|---|---|---|---|
+| `/api/products` | GET | Public | Paginated catalog with filters (category, price, search, sort) |
+| `/api/products/[slug]` | GET | Public | Single product details with live variant stocks |
+| `/api/categories` | GET | Public | Active category hierarchy |
+| `/api/checkout/quote` | POST | Public | Authoritative server price, shipping fee & total calculation |
+| `/api/orders` | POST | Public | Place guest COD order with atomic stock decrement |
+| `/api/orders/track` | POST | Public | Order tracking lookup by Phone + Order Number |
+| `/api/admin/auth/login` | POST | Public | Admin login, issues secure HTTP-only JWT |
+| `/api/admin/auth/logout`| POST | Admin | Invalidates session cookie |
+| `/api/admin/auth/me` | GET | Admin | Validates active session and returns profile |
+| `/api/admin/products` | POST / PUT | Admin | Create or update product and variant inventory |
+| `/api/admin/orders` | GET | Admin | Paginated admin order list with status & date filters |
+| `/api/admin/orders/[id]`| PATCH | Admin | Update status, courier tracking, and audit log |
+| `/api/admin/stats` | GET | Admin | High-level analytics: revenue, order funnel, low stock |
+| `/api/admin/settings` | GET / PUT | Admin | Manage shipping fees, contact details, pixel configs |
+
+---
+
+## 6. UI & Design System
+
+### 6.1 Brand Aesthetic
+Ishara radiates timeless luxury, soft feminine refinement, and effortless confidence:
+- **Palette**:
+  - `Brand Primary / Dusty Rose`: `#B45F77`
+  - `Brand Deep / Rose Wine`: `#8C4056`
+  - `Background Warm Tint`: `#FAF6F2` (Soft cream porcelain)
+  - `Surface White`: `#FFFFFF`
+  - `Accent Champagne / Rose Gold`: `#D4AF37` / `#C5A880`
+  - `Text Charcoal / Deep Espresso`: `#241E20`
+  - `Text Muted`: `#6F6467`
+  - `Border Soft`: `#EFE7E1`
+- **Typography**: Modern geometric clean styling with high legibility on mobile viewports.
+- **Micro-interactions**: Pill badge selections, tactile sticky "Order with Cash on Delivery" mobile bar, crisp feedback toasts, clean accordion FAQs.
+
+---
+
+## 7. Security & Concurrency Checklist
+
+- [x] **Authoritative Server Pricing**: Client price submissions are rejected; totals calculated from verified database snapshots.
+- [x] **Atomic Stock Concurrency**: Uses MongoDB `findOneAndUpdate({ _id, stock: { $gte: qty } }, { $inc: { stock: -qty } })` to guarantee no overselling under traffic surges.
+- [x] **Guest Order ID Protection**: Order details cannot be harvested via incremental IDs; public order numbers are randomized (`ISH-XXXX`) paired with hashed access tokens.
+- [x] **Rate Limiting**: Abuse prevention on `/api/orders` and `/api/orders/track` to prevent bot spam.
+- [x] **Session Security**: Admin authentication uses `HttpOnly`, `SameSite=Strict`, `Secure` cookies with signed JWT tokens.
+- [x] **Strict Input Validation**: Zod schema validation on every API endpoint.
+
+---
+
+## 8. Phased Implementation Roadmap
+
+- **Phase 1**: Project initialization, styling tokens, responsive navigation, storefront homepage, category browse, product detail landing page, mock database seeding.
+- **Phase 2**: MongoDB connection pooling, Mongoose schemas, seed scripts, product catalog APIs, admin authentication.
+- **Phase 3**: Variant inventory matrix, client cart state, single-step COD checkout with zone pricing, atomic stock deduction engine.
+- **Phase 4**: Admin dashboard, order management workflow, courier assignment, invoice generation, low-stock alerts.
+- **Phase 5**: Meta Pixel tracking helper, UTM attribution capture, SEO metadata, sitemap, robots.txt, landing page promos.
+- **Phase 6**: Automated testing, security audit, production build validation, and Vercel/MongoDB Atlas deployment documentation.
