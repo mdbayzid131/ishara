@@ -62,38 +62,51 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // Generate randomized order number
-      const randomCode = Math.floor(1000 + Math.random() * 9000);
-      const generatedOrderNumber = `ISH-${new Date().getFullYear().toString().slice(-2)}${String(new Date().getMonth() + 1).padStart(2, '0')}-${randomCode}`;
-
-      // In client mode / initial phase, save order snapshot in sessionStorage so order-success can display it securely
-      const orderData = {
-        orderNumber: generatedOrderNumber,
+      const payload = {
         customer: {
           name: name.trim(),
           phone: cleanPhone,
           address: address.trim(),
-          deliveryZone: selectedZoneObj.name,
+          deliveryZone,
           notes: notes.trim(),
         },
-        items: items.map((i) => ({ ...i })),
-        subtotal,
-        deliveryFee,
-        grandTotal,
-        paymentMethod: 'Cash on Delivery (COD)',
-        createdAt: new Date().toISOString(),
+        items: items.map((i) => ({
+          productId: i.productId,
+          variantSku: i.sku || '',
+          quantity: i.quantity,
+        })),
       };
 
-      sessionStorage.setItem(`order_${generatedOrderNumber}`, JSON.stringify(orderData));
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrorMessage(
+          data.error || 'An error occurred while placing your order. Please check your information and try again.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { orderNumber, accessToken, order } = data;
+
+      // Save order snapshot in sessionStorage as immediate local cache
+      sessionStorage.setItem(`order_${orderNumber}`, JSON.stringify(order));
+      sessionStorage.setItem(`order_token_${orderNumber}`, accessToken);
 
       // Clear shopping bag
       clearCart();
 
-      // Navigate to order confirmation
-      router.push(`/order-success/${generatedOrderNumber}`);
+      // Navigate to order confirmation with security access token
+      router.push(`/order-success/${orderNumber}?token=${accessToken}`);
     } catch (err) {
-      console.error(err);
-      setErrorMessage('An unexpected error occurred while placing your order. Please try again or WhatsApp us.');
+      console.error('Checkout error:', err);
+      setErrorMessage('A network error occurred while connecting to our server. Please try again or WhatsApp us.');
       setIsSubmitting(false);
     }
   };

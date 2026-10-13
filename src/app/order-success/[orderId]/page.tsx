@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -36,40 +36,79 @@ interface StoredOrder {
 
 function OrderSuccessContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params?.orderId as string;
   const [order, setOrder] = useState<StoredOrder | null>(null);
 
   useEffect(() => {
-    if (orderId) {
-      const timer = setTimeout(() => {
-        try {
-          const stored = sessionStorage.getItem(`order_${orderId}`);
-          if (stored) {
-            setOrder(JSON.parse(stored));
-          } else {
-            setOrder({
-              orderNumber: orderId,
-              customer: {
-                name: 'Valued Customer',
-                phone: '01XXXXXXXXX',
-                address: 'Dhaka, Bangladesh',
-                deliveryZone: 'Inside Dhaka',
-              },
-              items: [],
-              subtotal: 0,
-              deliveryFee: 70,
-              grandTotal: 70,
-              paymentMethod: 'Cash on Delivery (COD)',
-              createdAt: '2026-10-12T16:00:00.000Z',
-            });
+    if (!orderId) return;
+
+    let isMounted = true;
+    const token =
+      searchParams.get('token') ||
+      (typeof window !== 'undefined' ? sessionStorage.getItem(`order_token_${orderId}`) : null);
+
+    const fetchOrder = async () => {
+      try {
+        if (token) {
+          const res = await fetch(`/api/orders/${orderId}?token=${encodeURIComponent(token)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.order && isMounted) {
+              setOrder({
+                orderNumber: data.order.orderNumber,
+                customer: data.order.customer,
+                items: data.order.items || [],
+                subtotal: data.order.subtotal,
+                deliveryFee: data.order.deliveryFee,
+                grandTotal: data.order.totalAmount,
+                paymentMethod: data.order.paymentMethod || 'Cash on Delivery (COD)',
+                createdAt: data.order.createdAt,
+              });
+              return;
+            }
           }
-        } catch (e) {
-          console.error(e);
         }
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [orderId]);
+
+        // Fallback to local session storage
+        const stored = sessionStorage.getItem(`order_${orderId}`);
+        if (stored && isMounted) {
+          const parsed = JSON.parse(stored);
+          setOrder({
+            ...parsed,
+            grandTotal: parsed.grandTotal || parsed.totalAmount || 0,
+          });
+          return;
+        }
+
+        if (isMounted) {
+          setOrder({
+            orderNumber: orderId,
+            customer: {
+              name: 'Valued Customer',
+              phone: '01XXXXXXXXX',
+              address: 'Dhaka, Bangladesh',
+              deliveryZone: 'Inside Dhaka',
+            },
+            items: [],
+            subtotal: 0,
+            deliveryFee: 70,
+            grandTotal: 70,
+            paymentMethod: 'Cash on Delivery (COD)',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load order confirmation:', e);
+      }
+    };
+
+    fetchOrder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId, searchParams]);
 
   return (
     <div className="bg-[#faf6f2] py-12 sm:py-16">

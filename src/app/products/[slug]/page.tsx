@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -20,22 +20,52 @@ import {
 import { PRODUCTS } from '@/data/mockProducts';
 import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/product/ProductCard';
+import { ProductVariant } from '@/types';
 
 function ProductDetailContent() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
 
-  const product = PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
+  const initialProduct = PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
+  const [product, setProduct] = useState(initialProduct);
   const { addToCart, buyNow } = useCart();
 
   // Active state
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState(
-    product.variants[0] || undefined
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(
+    product.variants && product.variants[0] ? (product.variants[0] as ProductVariant) : undefined
   );
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'shipping' | 'care'>('desc');
+
+  // Sync with live server API
+  useEffect(() => {
+    if (!slug) return;
+    let isMounted = true;
+
+    fetch(`/api/products/${encodeURIComponent(slug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.success && data.product && isMounted) {
+          setProduct(data.product);
+          if (data.product.variants && data.product.variants.length > 0) {
+            setSelectedVariant((prev) => {
+              if (!prev) return data.product.variants[0];
+              const matched = data.product.variants.find(
+                (v: ProductVariant) => v.sku === prev.sku || v.id === prev.id
+              );
+              return matched || data.product.variants[0];
+            });
+          }
+        }
+      })
+      .catch((err) => console.error('Live product fetch error:', err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
 
   const currentPrice = selectedVariant?.price ?? product.basePrice;
   const currentStock = selectedVariant ? selectedVariant.stock : product.totalStock;
@@ -173,11 +203,13 @@ function ProductDetailContent() {
                   </div>
 
                   <div className="flex flex-wrap gap-2.5">
-                    {product.variants.map((variant) => {
-                      const isSelected = selectedVariant?.id === variant.id;
+                    {product.variants.map((variant: ProductVariant) => {
+                      const isSelected = selectedVariant?.sku
+                        ? selectedVariant.sku === variant.sku
+                        : selectedVariant?.id === (variant.id || (variant as unknown as { _id?: string })._id);
                       return (
                         <button
-                          key={variant.id}
+                          key={variant.sku || variant.id || (variant as unknown as { _id?: string })._id}
                           type="button"
                           onClick={() => setSelectedVariant(variant)}
                           className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${

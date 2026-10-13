@@ -22,7 +22,7 @@ export default function TrackOrderPage() {
   const [result, setResult] = useState<TrackingResult | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const handleTrack = (e: React.FormEvent) => {
+  const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     setNotFound(false);
     setResult(null);
@@ -36,44 +36,59 @@ export default function TrackOrderPage() {
 
     setIsSearching(true);
 
-    setTimeout(() => {
-      // Check sessionStorage first
-      const stored = sessionStorage.getItem(`order_${cleanOrder}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
+    try {
+      const res = await fetch('/api/orders/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber: cleanOrder, phone: cleanPhone }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.order) {
         setResult({
-          orderNumber: parsed.orderNumber,
-          status: 'confirmed',
-          customerName: parsed.customer.name,
-          deliveryZone: parsed.customer.deliveryZone,
-          totalAmount: parsed.grandTotal,
-          courierName: 'Steadfast Courier Ltd',
-          trackingCode: 'STDF-' + Math.floor(100000 + Math.random() * 900000),
-          createdAt: new Date(parsed.createdAt).toLocaleDateString(),
-          estimatedDelivery: 'Within 24-48 Hours',
+          orderNumber: data.order.orderNumber,
+          status: data.order.status,
+          customerName: data.order.customerName,
+          deliveryZone: data.order.deliveryZone,
+          totalAmount: data.order.totalAmount,
+          courierName: data.order.courierName,
+          trackingCode: data.order.trackingCode,
+          createdAt: new Date(data.order.createdAt).toLocaleDateString(),
+          estimatedDelivery: data.order.status === 'delivered' ? 'Delivered' : 'Within 24-48 Hours',
         });
         setIsSearching(false);
         return;
       }
 
-      // Demo fallback mock for sample checking (e.g. any ISH-XXXX)
-      if (cleanOrder.startsWith('ISH-') || cleanOrder.length >= 6) {
-        setResult({
-          orderNumber: cleanOrder,
-          status: 'processing',
-          customerName: 'Valued Customer',
-          deliveryZone: 'Dhaka City',
-          totalAmount: 1850,
-          courierName: 'Pathao Courier',
-          trackingCode: 'PTH-' + Math.floor(100000 + Math.random() * 900000),
-          createdAt: new Date().toLocaleDateString(),
-          estimatedDelivery: 'Tomorrow by 6:00 PM',
-        });
-      } else {
-        setNotFound(true);
+      // Check sessionStorage fallback if placed recently in same browser
+      const stored = sessionStorage.getItem(`order_${cleanOrder}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.customer && parsed.customer.phone.replace(/[^0-9]/g, '').includes(cleanPhone.slice(-6))) {
+          setResult({
+            orderNumber: parsed.orderNumber,
+            status: parsed.status || 'confirmed',
+            customerName: parsed.customer.name,
+            deliveryZone: parsed.customer.deliveryZone,
+            totalAmount: parsed.totalAmount || parsed.grandTotal || 0,
+            courierName: 'Steadfast Courier Ltd',
+            trackingCode: 'STDF-' + Math.floor(100000 + Math.random() * 900000),
+            createdAt: new Date(parsed.createdAt).toLocaleDateString(),
+            estimatedDelivery: 'Within 24-48 Hours',
+          });
+          setIsSearching(false);
+          return;
+        }
       }
+
+      setNotFound(true);
+    } catch (err) {
+      console.error('Tracking fetch error:', err);
+      setNotFound(true);
+    } finally {
       setIsSearching(false);
-    }, 600);
+    }
   };
 
   const steps = [
