@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Order } from '@/models/Order';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 const trackOrderSchema = z.object({
   orderNumber: z.string().trim().min(4, 'Order number is required'),
@@ -14,6 +15,27 @@ const trackOrderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(req, {
+      windowMs: 60 * 1000,
+      max: 20,
+      keyPrefix: 'orders_track',
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many tracking attempts. Please wait a moment before trying again.',
+          retryAfter: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const parsed = trackOrderSchema.safeParse(body);
 

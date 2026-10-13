@@ -8,6 +8,7 @@ import { Order, IOrderItem } from '@/models/Order';
 import { PRODUCTS } from '@/data/mockProducts';
 import { DELIVERY_ZONES, FREE_SHIPPING_THRESHOLD } from '@/config/delivery';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 const orderItemSchema = z.object({
   productId: z.string().min(1),
@@ -53,6 +54,27 @@ function generateOrderNumber(): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(req, {
+      windowMs: 60 * 1000,
+      max: 10,
+      keyPrefix: 'orders_create',
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many order requests. Please wait a moment before trying again.',
+          retryAfter: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
 

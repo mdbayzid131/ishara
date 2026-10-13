@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Admin } from '@/models/Admin';
 import { verifyPassword, signAdminToken, ADMIN_COOKIE_NAME, hashPassword } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -11,6 +12,27 @@ const loginSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(req, {
+      windowMs: 60 * 1000,
+      max: 5,
+      keyPrefix: 'admin_login',
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts. Please wait 1 minute before trying again.',
+          retryAfter: rateCheck.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateCheck.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const result = loginSchema.safeParse(body);
 

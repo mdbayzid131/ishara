@@ -16,3 +16,15 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
 ];
 
 export const FREE_SHIPPING_THRESHOLD = 3000; // Free shipping over 3,000 BDT
+
+/**
+ * Calculates delivery fee based on zone and order subtotal.
+ * Orders >= 3,000 BDT inside Dhaka receive free shipping.
+ */
+export function calculateDeliveryCharge(deliveryZoneId: string, subtotal: number): number {
+  const zone = DELIVERY_ZONES.find((z) => z.id === deliveryZoneId) || DELIVERY_ZONES[0];
+  if (deliveryZoneId === 'inside_dhaka' && subtotal >= FREE_SHIPPING_THRESHOLD) {
+    return 0;
+  }
+  return zone.fee;
+}
