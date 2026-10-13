@@ -154,3 +154,33 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+    const db = await connectToDatabase();
+    if (db) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const query = isObjectId ? { _id: id } : { orderNumber: id.toUpperCase() };
+
+      const deleted = await Order.findOneAndDelete(query);
+      if (!deleted) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, message: 'Order removed successfully' });
+    }
+
+    return NextResponse.json({ success: true, message: 'Order removed in fallback mode' });
+  } catch (error) {
+    console.error('Admin order DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
+  }
+}

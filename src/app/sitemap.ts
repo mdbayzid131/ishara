@@ -46,6 +46,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
+      url: `${baseUrl}/about`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/terms`,
       lastModified: now,
       changeFrequency: 'monthly',
@@ -53,13 +65,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Category filter routes
-  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((cat) => ({
-    url: `${baseUrl}/shop?category=${encodeURIComponent(cat.slug)}`,
-    lastModified: now,
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  }));
+  // Category dedicated routes & filter routes
+  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.flatMap((cat) => [
+    {
+      url: `${baseUrl}/categories/${encodeURIComponent(cat.slug)}`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/shop?category=${encodeURIComponent(cat.slug)}`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+  ]);
 
   // Dynamic products from database with fallback to seed products
   let productRoutes: MetadataRoute.Sitemap = [];

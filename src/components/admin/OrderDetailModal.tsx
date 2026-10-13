@@ -358,7 +358,7 @@ export default function OrderDetailModal({
                         <div className="flex items-center gap-3">
                           {item.image && (
                             <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#faf6f2] shrink-0 border border-[#efe8e1]">
-                              <Image src={item.image} alt="" fill className="object-cover" />
+                              <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
                             </div>
                           )}
                           <div>

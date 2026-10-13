@@ -80,3 +80,33 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    if (!token || !verifyAdminToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+    const db = await connectToDatabase();
+    if (db) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const query = isObjectId ? { _id: id } : { slug: id };
+
+      const deleted = await Product.findOneAndDelete(query);
+      if (!deleted) {
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, message: 'Product deleted successfully' });
+    }
+
+    return NextResponse.json({ success: true, message: 'Product deleted in fallback mode' });
+  } catch (error) {
+    console.error('Admin product DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
+  }
+}

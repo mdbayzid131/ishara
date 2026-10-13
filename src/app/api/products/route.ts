@@ -31,6 +31,8 @@ const createProductSchema = z.object({
     .default([]),
   isFeatured: z.boolean().default(false),
   badge: z.string().optional(),
+  totalStock: z.number().min(0).default(0),
+  status: z.enum(['draft', 'published', 'archived']).default('published'),
 });
 
 export async function GET(req: NextRequest) {

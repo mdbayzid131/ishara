@@ -1,7 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ishara-super-secret-jwt-key-2026-production';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'ishara-dev-jwt-secret-do-not-use-in-production');
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn('WARNING: JWT_SECRET environment variable is not defined in production!');
+}
+
 export const ADMIN_COOKIE_NAME = 'ishara_admin_session';
 
 export interface AdminJwtPayload {

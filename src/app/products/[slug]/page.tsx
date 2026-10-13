@@ -163,9 +163,10 @@ function ProductDetailContent() {
             {/* Main Featured Image */}
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#faf6f2] border border-[#efe8e1]">
               <Image
-                src={selectedVariant?.image || product.images[selectedImageIndex] || product.images[0]}
+                src={selectedVariant?.image || product.images?.[selectedImageIndex] || product.images?.[0] || '/images/ishara-logo.png'}
                 alt={product.title}
                 fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
                 className="object-cover object-center"
               />
@@ -191,7 +192,7 @@ function ProductDetailContent() {
                         : 'border-[#efe8e1] opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <Image src={img} alt="" fill className="object-cover" />
+                    <Image src={img} alt="" fill sizes="80px" className="object-cover" />
                   </button>
                 ))}
               </div>

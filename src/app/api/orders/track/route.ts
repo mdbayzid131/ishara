@@ -75,10 +75,16 @@ export async function POST(req: NextRequest) {
           },
         });
       }
+
+      // If DB is connected and no order found with this number and phone, return 404
+      return NextResponse.json(
+        { error: 'No order found matching this Order Number and Phone Number. Please check your information and try again.' },
+        { status: 404 }
+      );
     }
 
-    // In local / fallback mode when DB is not connected yet, check if order is in sample demo format
-    if (cleanOrderNumber.startsWith('ISH-') || cleanOrderNumber.length >= 8) {
+    // In local dev without DB connection, only match known demo number
+    if (cleanOrderNumber === 'ISH-DEMO-2026') {
       return NextResponse.json({
         success: true,
         order: {
@@ -88,7 +94,7 @@ export async function POST(req: NextRequest) {
           deliveryZone: 'Inside Dhaka',
           totalAmount: 1850,
           courierName: 'Steadfast Courier Ltd',
-          trackingCode: 'STDF-' + cleanOrderNumber.replace(/[^0-9]/g, ''),
+          trackingCode: 'STDF-20260101',
           itemsCount: 1,
           timeline: [
             {

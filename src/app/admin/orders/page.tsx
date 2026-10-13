@@ -296,6 +296,8 @@ export default function AdminOrdersPage() {
                             ? 'bg-purple-50 text-purple-800 border-purple-200'
                             : ord.status === 'delivered'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : ord.status === 'returned'
+                            ? 'bg-orange-50 text-orange-800 border-orange-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'
                         }`}
                       >

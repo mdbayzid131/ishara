@@ -3,17 +3,23 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingBag, Search, Menu, X, Phone, Truck, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { CATEGORIES } from '@/data/mockProducts';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { totalItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Do not render storefront consumer header on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#efe8e1] transition-all">
@@ -61,6 +67,7 @@ export default function Navbar() {
                   src="/images/ishara-logo.png"
                   alt="Ishara - Elegance in Blush and Rose Gold"
                   fill
+                  sizes="(max-width: 640px) 144px, 176px"
                   className="object-contain"
                   priority
                 />
@@ -82,7 +89,7 @@ export default function Navbar() {
             >
               All Products
             </Link>
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.slice(0, 3).map((cat) => (
               <Link
                 key={cat.id}
                 href={`/shop?category=${cat.slug}`}
@@ -91,6 +98,18 @@ export default function Navbar() {
                 {cat.name}
               </Link>
             ))}
+            <Link
+              href="/about"
+              className="text-sm font-medium text-[#6b5e62] hover:text-[#b45f77] transition-colors"
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="text-sm font-medium text-[#6b5e62] hover:text-[#b45f77] transition-colors"
+            >
+              Contact
+            </Link>
           </nav>
 
           {/* Action Icons: Search & Cart */}
@@ -182,6 +201,20 @@ export default function Navbar() {
                 {cat.name}
               </Link>
             ))}
+            <Link
+              href="/about"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-[#6b5e62] hover:bg-[#faf6f2] hover:text-[#b45f77]"
+            >
+              About Ishara
+            </Link>
+            <Link
+              href="/contact"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-[#6b5e62] hover:bg-[#faf6f2] hover:text-[#b45f77]"
+            >
+              Contact Support
+            </Link>
             <div className="pt-4 border-t border-[#efe8e1] space-y-2">
               <Link
                 href="/track-order"

@@ -3,11 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { FREE_SHIPPING_THRESHOLD } from '@/config/delivery';
 
 export default function CartDrawer() {
+  const pathname = usePathname();
   const {
     items,
     isCartOpen,
@@ -18,6 +20,7 @@ export default function CartDrawer() {
     totalItems,
   } = useCart();
 
+  if (pathname?.startsWith('/admin')) return null;
   if (!isCartOpen) return null;
 
   const freeShippingDifference = FREE_SHIPPING_THRESHOLD - subtotal;
@@ -90,16 +93,17 @@ export default function CartDrawer() {
                 </button>
               </div>
             ) : (
-              items.map((item) => (
+              items.map((item, idx) => (
                 <div
-                  key={item.sku}
+                  key={item.sku || `${item.productId}-${idx}`}
                   className="flex gap-4 p-3 rounded-xl border border-[#efe8e1] bg-[#faf6f2]/40 relative group"
                 >
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-white shrink-0 border border-[#efe8e1]">
                     <Image
-                      src={item.image}
-                      alt={item.title}
+                      src={item.image || '/images/ishara-logo.png'}
+                      alt={item.title || 'Cart product'}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   </div>

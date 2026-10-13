@@ -70,6 +70,7 @@ export default function HeroBanner() {
                 src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1000&q=85"
                 alt="Ishara Luxury Collection"
                 fill
+                sizes="(max-width: 1024px) 100vw, 42vw"
                 priority
                 className="object-cover"
               />

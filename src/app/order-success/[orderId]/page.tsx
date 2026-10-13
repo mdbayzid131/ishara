@@ -40,6 +40,7 @@ function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = params?.orderId as string;
   const [order, setOrder] = useState<StoredOrder | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!orderId) return;
@@ -107,6 +108,10 @@ function OrderSuccessContent() {
         }
       } catch (e) {
         console.error('Failed to load order confirmation:', e);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -152,7 +157,15 @@ function OrderSuccessContent() {
           </div>
 
           {/* Order Details Breakdown */}
-          {order && (
+          {isLoading ? (
+            <div className="text-left border-t border-[#efe8e1] pt-6 space-y-4 animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="h-24 bg-[#faf6f2] rounded-2xl" />
+                <div className="h-24 bg-[#faf6f2] rounded-2xl" />
+              </div>
+              <div className="h-28 bg-[#faf6f2] rounded-2xl" />
+            </div>
+          ) : order ? (
             <div className="text-left border-t border-[#efe8e1] pt-6 space-y-6">
               {/* Delivery info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -186,7 +199,13 @@ function OrderSuccessContent() {
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
                         <div className="flex items-center gap-2.5">
                           <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white shrink-0 border border-[#efe8e1]">
-                            <Image src={item.image} alt="" fill className="object-cover" />
+                            <Image
+                              src={item.image || '/images/ishara-logo.png'}
+                              alt={item.title || 'Product'}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
                           </div>
                           <div>
                             <p className="font-semibold text-[#201a1c]">{item.title}</p>
@@ -212,7 +231,7 @@ function OrderSuccessContent() {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">

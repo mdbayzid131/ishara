@@ -86,6 +86,7 @@ export default function OrderInvoiceModal({ order, onClose }: OrderInvoiceModalP
                   src="/images/ishara-logo.png"
                   alt="Ishara Luxury"
                   fill
+                  sizes="144px"
                   className="object-contain"
                 />
               </div>

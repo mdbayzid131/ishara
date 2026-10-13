@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Search,
   Filter,
@@ -9,6 +10,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
+  Plus,
   X,
   Save,
 } from 'lucide-react';
@@ -65,7 +67,7 @@ export default function AdminProductsPage() {
   const handleOpenEdit = (prod: Product) => {
     setEditingProduct(prod);
     setEditTotalStock(prod.totalStock);
-    setEditStatus('published');
+    setEditStatus((prod as any).status || 'published');
     setEditVariants(prod.variants ? JSON.parse(JSON.stringify(prod.variants)) : []);
     setFeedbackMsg(null);
   };
@@ -148,6 +150,13 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/admin/products/new"
+            className="px-3.5 py-2.5 bg-[#b45f77] hover:bg-[#9e4a62] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </Link>
           <button
             onClick={fetchProducts}
             disabled={isLoading}
@@ -214,6 +223,7 @@ export default function AdminProductsPage() {
                           src={p.images && p.images[0] ? p.images[0] : '/images/placeholder.jpg'}
                           alt=""
                           fill
+                          sizes="48px"
                           className="object-cover"
                         />
                       </div>
@@ -254,9 +264,20 @@ export default function AdminProductsPage() {
                     )}
                   </td>
                   <td className="py-4 px-6">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
-                      Published
-                    </span>
+                    {(() => {
+                      const prodStatus = (p as any).status || 'published';
+                      const badgeClass =
+                        prodStatus === 'published'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : prodStatus === 'draft'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-100 text-slate-700';
+                      return (
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${badgeClass}`}>
+                          {prodStatus}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-4 px-6 text-right">
                     <button

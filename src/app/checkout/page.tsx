@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   // Form Fields
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZoneId>('inside_dhaka');
   const [notes, setNotes] = useState('');
@@ -54,7 +55,7 @@ export default function CheckoutPage() {
       return;
     }
     const cleanPhone = phone.trim().replace(/[^0-9]/g, '');
-    if (cleanPhone.length < 11) {
+    if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
       setErrorMessage('Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01711223344).');
       return;
     }
@@ -74,6 +75,7 @@ export default function CheckoutPage() {
         customer: {
           name: name.trim(),
           phone: cleanPhone,
+          email: email.trim() || undefined,
           address: address.trim(),
           deliveryZone,
           notes: notes.trim(),
@@ -212,6 +214,20 @@ export default function CheckoutPage() {
                   </span>
                 </div>
 
+                {/* Email Address (Optional) */}
+                <div>
+                  <label className="block text-xs font-bold text-[#201a1c] uppercase tracking-wider mb-2">
+                    Email Address <span className="text-[#8c7e83] font-normal lowercase">(optional - for receipt)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full px-4 py-3 bg-[#faf6f2] border border-[#efe8e1] rounded-xl text-sm text-[#201a1c] focus:outline-none focus:border-[#b45f77] focus:bg-white transition-all"
+                  />
+                </div>
+
                 {/* Delivery Zone Selector */}
                 <div>
                   <label className="block text-xs font-bold text-[#201a1c] uppercase tracking-wider mb-2">
@@ -324,10 +340,10 @@ export default function CheckoutPage() {
 
                 {/* Items List */}
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  {items.map((item) => (
-                    <div key={item.sku} className="flex gap-3 items-center text-xs">
+                  {items.map((item, idx) => (
+                    <div key={item.sku || `${item.productId}-${idx}`} className="flex gap-3 items-center text-xs">
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#faf6f2] shrink-0 border border-[#efe8e1]">
-                        <Image src={item.image} alt="" fill className="object-cover" />
+                        <Image src={item.image} alt="" fill sizes="48px" className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-[#201a1c] truncate">{item.title}</p>

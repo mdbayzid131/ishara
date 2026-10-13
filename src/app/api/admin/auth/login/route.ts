@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       name: ADMIN_COOKIE_NAME,
       value: token,
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days

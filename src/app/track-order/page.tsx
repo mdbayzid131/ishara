@@ -204,18 +204,25 @@ export default function TrackOrderPage() {
             </div>
 
             {/* Courier Tracking Info */}
-            <div className="p-4 rounded-2xl bg-[#fdf5f7] border border-[#f5d4dc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-              <div>
-                <p className="font-bold text-[#201a1c]">
-                  Courier Partner: {result.courierName}
-                </p>
-                <p className="text-[#6b5e62]">Tracking Code: {result.trackingCode}</p>
+            {result.trackingCode ? (
+              <div className="p-4 rounded-2xl bg-[#fdf5f7] border border-[#f5d4dc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                <div>
+                  <p className="font-bold text-[#201a1c]">
+                    Courier Partner: {result.courierName}
+                  </p>
+                  <p className="text-[#6b5e62]">Tracking Code: {result.trackingCode}</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-[#6b5e62]">Estimated Delivery</p>
+                  <p className="font-extrabold text-[#b45f77]">{result.estimatedDelivery}</p>
+                </div>
               </div>
-              <div className="text-left sm:text-right">
-                <p className="text-[#6b5e62]">Estimated Delivery</p>
-                <p className="font-extrabold text-[#b45f77]">{result.estimatedDelivery}</p>
+            ) : (
+              <div className="p-4 rounded-2xl bg-[#faf6f2] border border-[#efe8e1] flex items-center justify-between text-xs">
+                <span className="text-[#6b5e62]">Fulfillment Partner:</span>
+                <span className="font-bold text-[#b45f77]">Preparing package for courier handover</span>
               </div>
-            </div>
+            )}
 
             {/* Timeline Stepper */}
             <div className="space-y-6">

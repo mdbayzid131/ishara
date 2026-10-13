@@ -3,10 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Phone, Mail, MapPin, ShieldCheck, RefreshCw, Truck, Heart } from 'lucide-react';
 import { CATEGORIES } from '@/data/mockProducts';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Do not render consumer footer on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
   return (
     <footer className="bg-[#201a1c] text-[#ded5d7] pt-16 pb-12 border-t border-[#3d3437]">
       {/* Value Badges Banner */}
@@ -52,6 +59,7 @@ export default function Footer() {
                 src="/images/ishara-logo.png"
                 alt="Ishara Brand"
                 fill
+                sizes="160px"
                 className="object-contain brightness-110"
               />
             </div>
@@ -112,6 +120,16 @@ export default function Footer() {
               <li>
                 <Link href="/terms" className="hover:text-white transition-colors">
                   Terms & Conditions
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="hover:text-white transition-colors">
+                  About Ishara
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-white transition-colors">
+                  Contact Support
                 </Link>
               </li>
             </ul>

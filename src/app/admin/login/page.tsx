@@ -8,8 +8,8 @@ import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@ishara.com.bd');
-  const [password, setPassword] = useState('IsharaAdmin2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -57,6 +57,7 @@ export default function AdminLoginPage() {
               src="/images/ishara-logo.png"
               alt="Ishara Brand"
               fill
+              sizes="160px"
               className="object-contain brightness-125"
               priority
             />
@@ -119,13 +120,6 @@ export default function AdminLoginPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#201a1c]/60 border border-[#3d3437] text-[11px] text-[#8c7e83]">
-            Default credentials for developer setup:
-            <br />
-            <strong className="text-rose-300 font-mono">admin@ishara.com.bd</strong> /{' '}
-            <strong className="text-rose-300 font-mono">IsharaAdmin2026!</strong>
           </div>
 
           <button

@@ -23,7 +23,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleQuickBuy = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const defaultVariant = product.variants[0];
+    const defaultVariant = product.variants?.[0];
     buyNow(product, defaultVariant, 1);
     router.push('/checkout');
   };
@@ -31,7 +31,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const defaultVariant = product.variants[0];
+    const defaultVariant = product.variants?.[0];
     addToCart(product, defaultVariant, 1);
   };
 
@@ -40,7 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Product Image & Badges */}
       <Link href={`/products/${product.slug}`} className="relative block aspect-square overflow-hidden bg-[#faf6f2]">
         <Image
-          src={product.images[0]}
+          src={product.images?.[0] || '/images/ishara-logo.png'}
           alt={product.title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
