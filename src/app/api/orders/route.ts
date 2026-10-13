@@ -32,6 +32,15 @@ const createOrderSchema = z.object({
     notes: z.string().optional().default(''),
   }),
   items: z.array(orderItemSchema).min(1, 'Order must contain at least one product'),
+  marketing: z
+    .object({
+      utmSource: z.string().optional(),
+      utmMedium: z.string().optional(),
+      utmCampaign: z.string().optional(),
+      utmTerm: z.string().optional(),
+      utmContent: z.string().optional(),
+    })
+    .optional(),
 });
 
 function generateOrderNumber(): string {
@@ -232,6 +241,7 @@ export async function POST(req: NextRequest) {
           consignmentId: '',
           notes: '',
         },
+        marketing: parsed.data.marketing || {},
         timeline: [
           {
             status: 'pending',
@@ -328,6 +338,7 @@ export async function POST(req: NextRequest) {
       totalAmount,
       status: 'pending',
       paymentMethod: 'COD',
+      marketing: parsed.data.marketing || {},
       createdAt: new Date().toISOString(),
     };
 

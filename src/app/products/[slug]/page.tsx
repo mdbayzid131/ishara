@@ -21,6 +21,7 @@ import { PRODUCTS } from '@/data/mockProducts';
 import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/product/ProductCard';
 import { ProductVariant } from '@/types';
+import { trackViewContent, trackAddToCart } from '@/lib/tracking/pixel';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -75,19 +76,69 @@ function ProductDetailContent() {
     ? Math.round(((product.compareAtPrice - currentPrice) / product.compareAtPrice) * 100)
     : 0;
 
+  // Track Meta Pixel ViewContent event
+  useEffect(() => {
+    if (product) {
+      trackViewContent({
+        id: product.id,
+        slug: product.slug,
+        title: product.title,
+        price: currentPrice,
+        category: product.category,
+      });
+    }
+  }, [product, currentPrice]);
+
   const handleBuyNow = () => {
     buyNow(product, selectedVariant, quantity);
+    trackAddToCart({
+      title: product.title,
+      sku: selectedVariant?.sku || product.slug,
+      price: currentPrice,
+      quantity,
+    });
     router.push('/checkout');
   };
 
   const handleAddToCart = () => {
     addToCart(product, selectedVariant, quantity);
+    trackAddToCart({
+      title: product.title,
+      sku: selectedVariant?.sku || product.slug,
+      price: currentPrice,
+      quantity,
+    });
   };
 
   const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
 
+  const jsonLd = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    name: product.title,
+    image: product.images,
+    description: product.shortDescription,
+    brand: {
+      '@type': 'Brand',
+      name: 'Ishara',
+    },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'BDT',
+      price: currentPrice,
+      availability: currentStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+    },
+  };
+
   return (
     <div className="pb-24 lg:pb-16 pt-4 sm:pt-8 bg-[#faf6f2]">
+      {/* JSON-LD Schema for Google SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <nav className="flex items-center gap-1.5 text-xs text-[#8c7e83]">

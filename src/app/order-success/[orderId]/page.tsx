@@ -10,6 +10,7 @@ import {
   Phone,
   MapPin,
 } from 'lucide-react';
+import { trackPurchase } from '@/lib/tracking/pixel';
 
 interface StoredOrder {
   orderNumber: string;
@@ -64,6 +65,12 @@ function OrderSuccessContent() {
                 grandTotal: data.order.totalAmount,
                 paymentMethod: data.order.paymentMethod || 'Cash on Delivery (COD)',
                 createdAt: data.order.createdAt,
+              });
+
+              trackPurchase({
+                orderNumber: data.order.orderNumber,
+                totalAmount: data.order.totalAmount,
+                itemsCount: data.order.items?.length || 1,
               });
               return;
             }

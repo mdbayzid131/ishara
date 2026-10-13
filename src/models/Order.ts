@@ -53,6 +53,13 @@ export interface IOrder extends Document {
     consignmentId?: string;
     notes?: string;
   };
+  marketing?: {
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+    utmTerm?: string;
+    utmContent?: string;
+  };
   timeline: IOrderTimeline[];
   createdAt: Date;
   updatedAt: Date;
@@ -117,6 +124,13 @@ const OrderSchema = new Schema<IOrder>(
       trackingCode: { type: String, default: '' },
       consignmentId: { type: String, default: '' },
       notes: { type: String, default: '' },
+    },
+    marketing: {
+      utmSource: { type: String, default: '' },
+      utmMedium: { type: String, default: '' },
+      utmCampaign: { type: String, default: '' },
+      utmTerm: { type: String, default: '' },
+      utmContent: { type: String, default: '' },
     },
     timeline: { type: [OrderTimelineSchema], default: [] },
   },

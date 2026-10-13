@@ -6,6 +6,8 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 
+import AnalyticsTracker from '@/components/tracking/AnalyticsTracker';
+
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
@@ -43,6 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={jakarta.variable}>
       <body className="min-h-screen flex flex-col bg-[#faf6f2] text-[#201a1c] antialiased">
+        <AnalyticsTracker />
         <CartProvider>
           <Navbar />
           <CartDrawer />

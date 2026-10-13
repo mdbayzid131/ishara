@@ -15,6 +15,8 @@ import {
 import { useCart } from '@/context/CartContext';
 import { DELIVERY_ZONES, FREE_SHIPPING_THRESHOLD } from '@/config/delivery';
 import { DeliveryZoneId } from '@/types';
+import { getStoredUtmParams, clearStoredUtmParams } from '@/lib/tracking/utm';
+import { trackInitiateCheckout } from '@/lib/tracking/pixel';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -35,6 +37,12 @@ export default function CheckoutPage() {
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD && deliveryZone === 'inside_dhaka';
   const deliveryFee = isFreeShipping ? 0 : selectedZoneObj.fee;
   const grandTotal = subtotal + deliveryFee;
+
+  React.useEffect(() => {
+    if (items.length > 0) {
+      trackInitiateCheckout(items.length, subtotal);
+    }
+  }, [items.length, subtotal]);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +83,7 @@ export default function CheckoutPage() {
           variantSku: i.sku || '',
           quantity: i.quantity,
         })),
+        marketing: getStoredUtmParams(),
       };
 
       const res = await fetch('/api/orders', {
@@ -94,6 +103,9 @@ export default function CheckoutPage() {
       }
 
       const { orderNumber, accessToken, order } = data;
+
+      // Clear UTM parameters once order is placed
+      clearStoredUtmParams();
 
       // Save order snapshot in sessionStorage as immediate local cache
       sessionStorage.setItem(`order_${orderNumber}`, JSON.stringify(order));
