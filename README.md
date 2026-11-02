@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ishara
 
-## Getting Started
+A Bangladesh-focused accessories and lifestyle store with guest cash-on-delivery checkout, product variants, inventory, order tracking and an admin back office.
 
-First, run the development server:
+Built with Next.js 16.4, React 19, TypeScript, Tailwind CSS and MongoDB/Mongoose. Admin sessions use HTTP-only JWT cookies.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Run locally
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Run npm install.
+2. Copy .env.example to .env.local and configure your MongoDB Atlas URI and JWT secret. Never commit .env.local.
+3. Run npm run dev and open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For a sample-data preview, set ISHARA_DEMO_MODE=1 in development. Ordering and admin writes remain disabled until a database is connected. This flag is ignored in production.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Admin and catalog setup
 
-## Learn More
+For a new database, configure ADMIN_EMAIL and ADMIN_PASSWORD (at least 12 characters) and run npm run seed. The script creates a missing admin and upserts sample products/categories. Review it before running on an existing store; it can replace catalog values. There is no automatic default-password login.
 
-To learn more about Next.js, take a look at the following resources:
+Admin login is at /admin/login. Store settings manage contact information, delivery fees, free delivery threshold and Meta Pixel ID. Campaigns are currently a labelled UI preview; coupons are not applied at checkout.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Verification
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- npm run lint
+- npm run typecheck
+- npm test — business rules, checkout regressions and HTTP integration tests. Start the development server first. TEST_BASE_URL can select another test server.
+- npm run test:db — transaction/concurrency tests in a generated disposable MongoDB database, removed afterward. Requires Atlas or a replica set and permission to create/remove that test database. Does not write test orders to the store database.
+- npm run build
 
-## Deploy on Vercel
+Order creation and cancellation use MongoDB transactions, requiring Atlas or a replica set. Product media currently uses image URLs; courier assignment is manual.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [PROJECT_REVIEW.md](PROJECT_REVIEW.md) for implemented fixes and the next product priorities, and [DEPLOYMENT.md](DEPLOYMENT.md) for deployment notes.

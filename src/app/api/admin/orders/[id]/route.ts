@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Order, OrderStatus } from '@/models/Order';
+import { Product } from '@/models/Product';
+import { canTransitionOrder } from '@/lib/order-status';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
 
 const updateOrderSchema = z.object({
@@ -87,11 +89,15 @@ export async function PATCH(
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
 
+      if (status && !canTransitionOrder(existingOrder.status, status)) {
+        return NextResponse.json({ error: `Cannot move an order from ${existingOrder.status} to ${status}.` }, { status: 409 });
+      }
       const updateData: Record<string, unknown> = {};
       const newTimelineEvents = [];
 
       if (status && status !== existingOrder.status) {
         updateData.status = status;
+        if (status === 'delivered') updateData.paymentStatus = 'paid';
         newTimelineEvents.push({
           status: status as OrderStatus,
           timestamp: new Date(),
@@ -130,7 +136,27 @@ export async function PATCH(
         updateQuery.$push = { timeline: { $each: newTimelineEvents } };
       }
 
-      const updated = await Order.findOneAndUpdate(query, updateQuery, { new: true }).lean();
+      const session = await mongoose.startSession();
+      let updated;
+      try {
+        updated = await session.withTransaction(async () => {
+          // Matching the observed status prevents two admins restoring stock twice.
+          const order = await Order.findOneAndUpdate({ ...query, status: existingOrder.status }, updateQuery, { returnDocument: 'after', session }).lean();
+          if (!order) throw new Error('ORDER_CHANGED');
+          if (status && status !== existingOrder.status && (status === 'cancelled' || status === 'returned')) {
+            for (const item of existingOrder.items) {
+              const increments: Record<string, number> = { totalStock: item.quantity, salesCount: -item.quantity };
+              const productQuery: Record<string, unknown> = { _id: item.productId };
+              if (item.variantSku) { productQuery['variants.sku'] = item.variantSku; increments['variants.$.stock'] = item.quantity; }
+              const result = await Product.updateOne(productQuery, { $inc: increments }, { session });
+              if (result.matchedCount !== 1) throw new Error('RESTOCK_FAILED');
+            }
+          }
+          return order;
+        });
+      } finally {
+        await session.endSession();
+      }
 
       return NextResponse.json({
         success: true,
@@ -139,17 +165,9 @@ export async function PATCH(
       });
     }
 
-    // Fallback mode for local development
-    return NextResponse.json({
-      success: true,
-      message: 'Order updated in fallback mode',
-      order: {
-        orderNumber: id,
-        status: status || 'confirmed',
-        courier: courier || { provider: 'Steadfast', trackingCode: 'STDF-DEMO123' },
-      },
-    });
+    return NextResponse.json({ error: 'Database not connected. Changes were not saved.' }, { status: 503 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'ORDER_CHANGED') return NextResponse.json({ error: 'This order changed. Refresh and try again.' }, { status: 409 });
     console.error('Admin order PATCH error:', error);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
@@ -178,7 +196,7 @@ export async function DELETE(
       return NextResponse.json({ success: true, message: 'Order removed successfully' });
     }
 
-    return NextResponse.json({ success: true, message: 'Order removed in fallback mode' });
+    return NextResponse.json({ error: 'Database not connected. Changes were not saved.' }, { status: 503 });
   } catch (error) {
     console.error('Admin order DELETE error:', error);
     return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });

@@ -19,12 +19,14 @@ export async function seedDatabase() {
     console.log('✅ Connected to MongoDB.');
 
     // 1. Seed Default Admin
-    const adminEmail = 'admin@ishara.com.bd';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@ishara.com.bd';
     const existingAdmin = await Admin.findOne({ email: adminEmail });
 
     if (!existingAdmin) {
       console.log('👤 Creating default superadmin account...');
-      const passwordHash = await hashPassword('IsharaAdmin2026!');
+      const initialPassword = process.env.ADMIN_PASSWORD;
+      if (!initialPassword || initialPassword.length < 12) throw new Error('Set ADMIN_PASSWORD to at least 12 characters before seeding.');
+      const passwordHash = await hashPassword(initialPassword);
       await Admin.create({
         username: 'admin',
         email: adminEmail,
@@ -51,7 +53,7 @@ export async function seedDatabase() {
           isFeatured: cat.isFeatured ?? true,
           isActive: true,
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
     }
     console.log(`✅ Seeded ${CATEGORIES.length} categories.`);
@@ -89,7 +91,7 @@ export async function seedDatabase() {
           rating: prod.rating,
           reviewsCount: prod.reviewsCount,
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
     }
     console.log(`✅ Seeded ${PRODUCTS.length} products.`);

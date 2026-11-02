@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import PageIntro from '@/components/layout/PageIntro';
+import { normalizePhone } from '@/lib/phone';
+import type { OrderStatus } from '@/types';
 import { Search, AlertCircle, Phone } from 'lucide-react';
 
 interface TrackingResult {
   orderNumber: string;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered';
+  status: OrderStatus;
   customerName: string;
   deliveryZone: string;
   totalAmount: number;
@@ -28,7 +31,7 @@ export default function TrackOrderPage() {
     setResult(null);
 
     const cleanOrder = orderNumber.trim().toUpperCase();
-    const cleanPhone = phoneNumber.trim().replace(/[^0-9]/g, '');
+    const cleanPhone = normalizePhone(phoneNumber);
 
     if (!cleanOrder || !cleanPhone) {
       return;
@@ -55,31 +58,10 @@ export default function TrackOrderPage() {
           courierName: data.order.courierName,
           trackingCode: data.order.trackingCode,
           createdAt: new Date(data.order.createdAt).toLocaleDateString(),
-          estimatedDelivery: data.order.status === 'delivered' ? 'Delivered' : 'Within 24-48 Hours',
+          estimatedDelivery: data.order.status === 'delivered' ? 'Delivered' : data.order.status === 'cancelled' ? 'Order cancelled' : data.order.status === 'returned' ? 'Order returned' : 'Our team will confirm the delivery schedule',
         });
         setIsSearching(false);
         return;
-      }
-
-      // Check sessionStorage fallback if placed recently in same browser
-      const stored = sessionStorage.getItem(`order_${cleanOrder}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.customer && parsed.customer.phone.replace(/[^0-9]/g, '').includes(cleanPhone.slice(-6))) {
-          setResult({
-            orderNumber: parsed.orderNumber,
-            status: parsed.status || 'confirmed',
-            customerName: parsed.customer.name,
-            deliveryZone: parsed.customer.deliveryZone,
-            totalAmount: parsed.totalAmount || parsed.grandTotal || 0,
-            courierName: 'Steadfast Courier Ltd',
-            trackingCode: 'STDF-' + Math.floor(100000 + Math.random() * 900000),
-            createdAt: new Date(parsed.createdAt).toLocaleDateString(),
-            estimatedDelivery: 'Within 24-48 Hours',
-          });
-          setIsSearching(false);
-          return;
-        }
       }
 
       setNotFound(true);
@@ -110,26 +92,15 @@ export default function TrackOrderPage() {
   };
 
   return (
-    <div className="bg-[#faf6f2] py-12 sm:py-16">
+    <div className="reference-page tracking-reference">
+      <PageIntro page="Track order" eyebrow="YOUR ORDER, AT A GLANCE" title="From our door" accent="to yours." description="Enter your order number and mobile number below to find the latest status of your Ishara order." image="/images/editorial/beauty-campaign.webp" />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <span className="text-xs font-bold text-[#b45f77] uppercase tracking-widest">
-            Live Shipment Tracking
-          </span>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-[#201a1c] mt-1">
-            Track Your Ishara Order
-          </h1>
-          <p className="text-xs sm:text-sm text-[#6b5e62] mt-1">
-            Enter your Order Reference Number and Phone Number to see real-time updates.
-          </p>
-        </div>
-
         {/* Search Form */}
-        <div className="bg-white rounded-3xl border border-[#efe8e1] p-6 sm:p-8 shadow-xs mb-8">
+        <div className="bg-[#161616] rounded-3xl border border-[#ffffff14] p-6 sm:p-8 shadow-xs mb-8">
           <form onSubmit={handleTrack} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-[#201a1c] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[#f3eee8] uppercase tracking-wider mb-1.5">
                   Order Number
                 </label>
                 <input
@@ -138,12 +109,12 @@ export default function TrackOrderPage() {
                   placeholder="e.g. ISH-2610-1234"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#faf6f2] border border-[#efe8e1] rounded-xl text-sm uppercase text-[#201a1c] focus:outline-none focus:border-[#b45f77] focus:bg-white"
+                  className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ffffff14] rounded-xl text-sm uppercase text-[#f3eee8] focus:outline-none focus:border-[#d43b4a] focus:bg-[#161616]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#201a1c] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[#f3eee8] uppercase tracking-wider mb-1.5">
                   Phone Number
                 </label>
                 <input
@@ -152,7 +123,7 @@ export default function TrackOrderPage() {
                   placeholder="017XXXXXXXX"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#faf6f2] border border-[#efe8e1] rounded-xl text-sm text-[#201a1c] focus:outline-none focus:border-[#b45f77] focus:bg-white"
+                  className="w-full px-4 py-3 bg-[#0d0d0d] border border-[#ffffff14] rounded-xl text-sm text-[#f3eee8] focus:outline-none focus:border-[#d43b4a] focus:bg-[#161616]"
                 />
               </div>
             </div>
@@ -160,7 +131,7 @@ export default function TrackOrderPage() {
             <button
               type="submit"
               disabled={isSearching}
-              className="w-full py-3.5 px-6 bg-[#b45f77] hover:bg-[#9e4a62] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
+              className="w-full py-3.5 px-6 bg-[#d43b4a] hover:bg-[#b72b39] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
             >
               <Search className="w-4 h-4" />
               <span>{isSearching ? 'Checking Status...' : 'Track My Order'}</span>
@@ -181,22 +152,22 @@ export default function TrackOrderPage() {
 
         {/* Tracking Details View */}
         {result && (
-          <div className="bg-white rounded-3xl border border-[#efe8e1] p-6 sm:p-8 shadow-md space-y-8 animate-in fade-in duration-300">
+          <div className="bg-[#161616] rounded-3xl border border-[#ffffff14] p-6 sm:p-8 shadow-md space-y-8 animate-in fade-in duration-300">
             {/* Top Details */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-6 border-b border-[#efe8e1] gap-4">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-6 border-b border-[#ffffff14] gap-4">
               <div>
-                <span className="text-[11px] text-[#8c7e83] uppercase tracking-wider font-semibold">
+                <span className="text-[11px] text-[#a89b95] uppercase tracking-wider font-semibold">
                   Order Reference
                 </span>
-                <h3 className="text-xl font-black text-[#b45f77]">{result.orderNumber}</h3>
-                <p className="text-xs text-[#6b5e62] mt-0.5">Placed on {result.createdAt}</p>
+                <h3 className="text-xl font-black text-[#d43b4a]">{result.orderNumber}</h3>
+                <p className="text-xs text-[#b7aaa4] mt-0.5">Placed on {result.createdAt}</p>
               </div>
 
               <div className="sm:text-right">
-                <span className="text-[11px] text-[#8c7e83] uppercase tracking-wider font-semibold">
+                <span className="text-[11px] text-[#a89b95] uppercase tracking-wider font-semibold">
                   Total Payable (COD)
                 </span>
-                <p className="text-lg font-bold text-[#201a1c]">৳{result.totalAmount.toLocaleString()} BDT</p>
+                <p className="text-lg font-bold text-[#f3eee8]">৳{result.totalAmount.toLocaleString()} BDT</p>
                 <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-full mt-1">
                   Cash on Delivery
                 </span>
@@ -205,32 +176,33 @@ export default function TrackOrderPage() {
 
             {/* Courier Tracking Info */}
             {result.trackingCode ? (
-              <div className="p-4 rounded-2xl bg-[#fdf5f7] border border-[#f5d4dc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+              <div className="p-4 rounded-2xl bg-[#241316] border border-[#f5d4dc] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
                 <div>
-                  <p className="font-bold text-[#201a1c]">
+                  <p className="font-bold text-[#f3eee8]">
                     Courier Partner: {result.courierName}
                   </p>
-                  <p className="text-[#6b5e62]">Tracking Code: {result.trackingCode}</p>
+                  <p className="text-[#b7aaa4]">Tracking Code: {result.trackingCode}</p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <p className="text-[#6b5e62]">Estimated Delivery</p>
-                  <p className="font-extrabold text-[#b45f77]">{result.estimatedDelivery}</p>
+                  <p className="text-[#b7aaa4]">Estimated Delivery</p>
+                  <p className="font-extrabold text-[#d43b4a]">{result.estimatedDelivery}</p>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-[#faf6f2] border border-[#efe8e1] flex items-center justify-between text-xs">
-                <span className="text-[#6b5e62]">Fulfillment Partner:</span>
-                <span className="font-bold text-[#b45f77]">Preparing package for courier handover</span>
+              <div className="p-4 rounded-2xl bg-[#0d0d0d] border border-[#ffffff14] flex items-center justify-between text-xs">
+                <span className="text-[#b7aaa4]">Fulfillment Partner:</span>
+                <span className="font-bold text-[#d43b4a]">Preparing package for courier handover</span>
               </div>
             )}
 
             {/* Timeline Stepper */}
             <div className="space-y-6">
-              <h4 className="text-xs font-bold text-[#201a1c] uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-[#f3eee8] uppercase tracking-wider">
                 Progress Timeline
               </h4>
 
-              <div className="relative pl-6 space-y-8 border-l-2 border-[#efe8e1]">
+              <div className="relative pl-6 space-y-8 border-l-2 border-[#ffffff14]">
+                {(result.status === 'cancelled' || result.status === 'returned') && <p role="status" className="font-semibold text-[#ed6974]">This order has been {result.status}.</p>}
                 {steps.map((step, idx) => {
                   const state = getStepStatus(step.key, result.status);
                   return (
@@ -239,10 +211,10 @@ export default function TrackOrderPage() {
                       <div
                         className={`absolute -left-[31px] top-0 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-colors ${
                           state === 'completed'
-                            ? 'bg-[#b45f77] text-white'
+                            ? 'bg-[#d43b4a] text-white'
                             : state === 'current'
-                            ? 'bg-[#b45f77] text-white ring-4 ring-[#b45f77]/20'
-                            : 'bg-[#faf6f2] text-[#8c7e83] border border-[#efe8e1]'
+                            ? 'bg-[#d43b4a] text-white ring-4 ring-[#d43b4a]/20'
+                            : 'bg-[#0d0d0d] text-[#a89b95] border border-[#ffffff14]'
                         }`}
                       >
                         {state === 'completed' ? '✓' : idx + 1}
@@ -251,12 +223,12 @@ export default function TrackOrderPage() {
                       <div>
                         <h5
                           className={`text-xs sm:text-sm font-bold ${
-                            state === 'upcoming' ? 'text-[#8c7e83]' : 'text-[#201a1c]'
+                            state === 'upcoming' ? 'text-[#a89b95]' : 'text-[#f3eee8]'
                           }`}
                         >
                           {step.title}
                         </h5>
-                        <p className="text-[11px] text-[#6b5e62] mt-0.5">{step.desc}</p>
+                        <p className="text-[11px] text-[#b7aaa4] mt-0.5">{step.desc}</p>
                       </div>
                     </div>
                   );
@@ -265,13 +237,13 @@ export default function TrackOrderPage() {
             </div>
 
             {/* Need Help */}
-            <div className="pt-6 border-t border-[#efe8e1] flex items-center justify-between text-xs text-[#6b5e62]">
+            <div className="pt-6 border-t border-[#ffffff14] flex items-center justify-between text-xs text-[#b7aaa4]">
               <span>Need assistance with this parcel?</span>
               <a
                 href="https://wa.me/8801711223344"
                 target="_blank"
                 rel="noreferrer"
-                className="font-bold text-[#b45f77] hover:underline flex items-center gap-1"
+                className="font-bold text-[#d43b4a] hover:underline flex items-center gap-1"
               >
                 <Phone className="w-3.5 h-3.5" /> WhatsApp Support
               </a>

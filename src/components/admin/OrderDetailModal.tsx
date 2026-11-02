@@ -13,7 +13,8 @@ import {
   AlertCircle,
   FileText,
 } from 'lucide-react';
-import { OrderStatus } from '@/models/Order';
+import type { OrderStatus } from '@/models/Order';
+import { canTransitionOrder } from '@/lib/order-status';
 
 export interface AdminOrderDetailItem {
   productId: string;
@@ -215,13 +216,13 @@ export default function OrderDetailModal({
                   onChange={(e) => setCurrentStatus(e.target.value as OrderStatus)}
                   className="w-full bg-white border border-[#efe8e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#201a1c] focus:outline-none focus:border-[#b45f77]"
                 >
-                  <option value="pending">Pending (Awaiting Verification)</option>
-                  <option value="confirmed">Confirmed (Verified with Customer)</option>
-                  <option value="processing">Processing & Packaging</option>
-                  <option value="shipped">Shipped (Handed to Courier)</option>
-                  <option value="delivered">Delivered (Payment Collected)</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="returned">Returned</option>
+                  <option disabled={!canTransitionOrder(order.status, 'pending')} value="pending">Pending (Awaiting Verification)</option>
+                  <option disabled={!canTransitionOrder(order.status, 'confirmed')} value="confirmed">Confirmed (Verified with Customer)</option>
+                  <option disabled={!canTransitionOrder(order.status, 'processing')} value="processing">Processing & Packaging</option>
+                  <option disabled={!canTransitionOrder(order.status, 'shipped')} value="shipped">Shipped (Handed to Courier)</option>
+                  <option disabled={!canTransitionOrder(order.status, 'delivered')} value="delivered">Delivered (Payment Collected)</option>
+                  <option disabled={!canTransitionOrder(order.status, 'cancelled')} value="cancelled">Cancelled</option>
+                  <option disabled={!canTransitionOrder(order.status, 'returned')} value="returned">Returned</option>
                 </select>
               </div>
 

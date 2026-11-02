@@ -28,6 +28,7 @@ export interface IOrderTimeline {
 }
 
 export interface IOrder extends Document {
+  idempotencyKey?: string;
   orderNumber: string;
   accessToken: string;
   customer: {
@@ -91,6 +92,7 @@ const OrderTimelineSchema = new Schema<IOrderTimeline>(
 
 const OrderSchema = new Schema<IOrder>(
   {
+    idempotencyKey: { type: String, unique: true, sparse: true },
     orderNumber: { type: String, required: true, unique: true, index: true },
     accessToken: { type: String, required: true },
     customer: {

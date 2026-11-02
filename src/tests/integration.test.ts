@@ -38,12 +38,14 @@ async function runIntegrationTests() {
 
   // --- TEST 2: Authoritative Server-Side Quote Engine ---
   console.log('\n--- 2. AUTHORITATIVE QUOTE & DELIVERY PRICING ---');
+  const availableProduct = productsData.products.find((product: { totalStock: number; hasVariants: boolean; variants: { stock: number }[] }) => product.totalStock > 0 && (!product.hasVariants || product.variants.some((variant) => variant.stock > 0)));
+  assert(!!availableProduct, 'Quote tests need an available product; studio previews cannot be ordered');
   const quoteUnderDhaka = await fetch(`${BASE_URL}/api/checkout/quote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       deliveryZone: 'inside_dhaka',
-      items: [{ productId: productsData.products[0].id || 'prod-01', quantity: 1 }],
+      items: [{ productId: availableProduct.id, variantSku: availableProduct.hasVariants ? availableProduct.variants.find((variant: { stock: number }) => variant.stock > 0)?.sku : '', quantity: 1 }],
     }),
   });
   assert(quoteUnderDhaka.status === 200, `Quote under 3k Dhaka must return 200, got ${quoteUnderDhaka.status}`);
@@ -56,7 +58,7 @@ async function runIntegrationTests() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       deliveryZone: 'outside_dhaka',
-      items: [{ productId: productsData.products[0].id || 'prod-01', quantity: 1 }],
+      items: [{ productId: availableProduct.id, variantSku: availableProduct.hasVariants ? availableProduct.variants.find((variant: { stock: number }) => variant.stock > 0)?.sku : '', quantity: 1 }],
     }),
   });
   const quoteOutsideData = await quoteOutside.json();
@@ -128,7 +130,10 @@ async function runIntegrationTests() {
   console.log(`  X-Frame-Options: ${xFrame || 'SAMEORIGIN (configured in next.config.ts)'}`);
   console.log(`  X-Content-Type-Options: ${xContentType || 'nosniff (configured in next.config.ts)'}`);
   console.log(`  Referrer-Policy: ${referrerPolicy || 'strict-origin-when-cross-origin'}`);
-  console.log('✓ Enterprise HTTP headers confirmed');
+  assert(xFrame === 'DENY' || xFrame === 'SAMEORIGIN', 'Frame protection header must be present');
+  assert(xContentType === 'nosniff', 'Content type protection must be present');
+  assert(!!referrerPolicy, 'Referrer policy must be present');
+  console.log('✓ Security HTTP headers confirmed');
 
   console.log(`\n======================================================`);
   console.log(`🎉 ALL INTEGRATION & SECURITY TESTS PASSED SUCCESSFULLY!`);

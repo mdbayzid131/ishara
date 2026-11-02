@@ -56,34 +56,14 @@ export async function GET(
           totalAmount: order.totalAmount,
           status: order.status,
           paymentMethod: order.paymentMethod,
-          courier: order.courier,
-          timeline: order.timeline,
+          courier: { provider: order.courier?.provider, trackingCode: order.courier?.trackingCode },
+          timeline: order.timeline.map((event) => ({ status: event.status, timestamp: event.timestamp })),
           createdAt: order.createdAt,
         },
       });
     }
 
-    // Fallback mode for local development without DB
-    return NextResponse.json({
-      success: true,
-      order: {
-        orderNumber: cleanOrderNumber,
-        customer: {
-          name: 'Valued Customer',
-          phone: '01711223344',
-          address: 'House 12, Road 4, Banani, Dhaka',
-          deliveryZone: 'Inside Dhaka',
-        },
-        items: [],
-        subtotal: 1850,
-        deliveryFee: 70,
-        discount: 0,
-        totalAmount: 1920,
-        status: 'pending',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-      },
-    });
+    return NextResponse.json({ error: 'Order lookup is temporarily unavailable.' }, { status: 503 });
   } catch (error) {
     console.error('Order GET by orderNumber error:', error);
     return NextResponse.json(

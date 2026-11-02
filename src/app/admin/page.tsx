@@ -11,7 +11,6 @@ import {
   Truck,
   ChevronRight,
 } from 'lucide-react';
-import { PRODUCTS } from '@/data/mockProducts';
 
 interface AdminStats {
   totalRevenue: number;
@@ -43,44 +42,9 @@ interface AdminStats {
 }
 
 const DEFAULT_STATS: AdminStats = {
-  totalRevenue: 34500,
-  totalOrders: 16,
-  pendingOrders: 4,
-  confirmedOrders: 5,
-  processingOrders: 2,
-  shippedOrders: 3,
-  deliveredOrders: 2,
-  cancelledOrders: 0,
-  lowStockCount: 3,
-  lowStockItems: PRODUCTS.filter((p) => p.totalStock < 25).map((p) => ({
-    id: p.id,
-    title: p.title,
-    slug: p.slug,
-    totalStock: p.totalStock,
-    variants: p.variants.map((v) => ({ sku: v.sku, name: v.name, stock: v.stock })),
-  })),
-  recentOrders: [
-    {
-      id: 'ISH-2610-8421',
-      customer: 'Tasmia Haque',
-      phone: '01712998877',
-      zone: 'Inside Dhaka',
-      itemsCount: 2,
-      total: 3140,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'ISH-2610-8419',
-      customer: 'Mahmudul Hasan',
-      phone: '01819554433',
-      zone: 'Outside Dhaka',
-      itemsCount: 1,
-      total: 1980,
-      status: 'confirmed',
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-  ],
+  totalRevenue: 0, totalOrders: 0, pendingOrders: 0, confirmedOrders: 0,
+  processingOrders: 0, shippedOrders: 0, deliveredOrders: 0, cancelledOrders: 0,
+  lowStockCount: 0, lowStockItems: [], recentOrders: [],
 };
 
 export default function AdminDashboardPage() {

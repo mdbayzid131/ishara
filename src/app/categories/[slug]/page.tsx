@@ -3,11 +3,11 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams, notFound } from 'next/navigation';
-import { Sparkles, Filter, ArrowLeft } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { Sparkles, Filter } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
 import { PRODUCTS, CATEGORIES } from '@/data/mockProducts';
-import { Product } from '@/types';
+import { Product, Category } from '@/types';
 
 function CategoryDetailContent() {
   const params = useParams();
@@ -18,23 +18,20 @@ function CategoryDetailContent() {
   const [products, setProducts] = useState<Product[]>(
     PRODUCTS.filter((p) => p.categorySlug === slug)
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
 
     let isMounted = true;
-    setIsLoading(true);
 
     // Fetch live categories if available
     fetch('/api/categories')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.success && data.categories && isMounted) {
-          const found = data.categories.find((c: any) => c.slug === slug);
-          if (found) {
-            setCategoryData(found);
-          }
+          const found = data.categories.find((c: Category) => c.slug === slug);
+          setCategoryData(found || null);
         }
       })
       .catch((err) => console.error(err));
@@ -59,12 +56,12 @@ function CategoryDetailContent() {
 
   if (!categoryData && !isLoading) {
     return (
-      <div className="bg-[#faf6f2] min-h-[60vh] flex flex-col items-center justify-center p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-[#201a1c]">Category Not Found</h2>
-        <p className="text-xs text-[#6b5e62]">The category you are looking for does not exist.</p>
+      <div className="bg-[#0d0d0d] min-h-[60vh] flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <h2 className="text-xl font-bold text-[#f3eee8]">Category Not Found</h2>
+        <p className="text-xs text-[#b7aaa4]">The category you are looking for does not exist.</p>
         <Link
           href="/shop"
-          className="px-5 py-2.5 bg-[#b45f77] text-white text-xs font-bold rounded-xl"
+          className="px-5 py-2.5 bg-[#d43b4a] text-white text-xs font-bold rounded-xl"
         >
           Return to Shop
         </Link>
@@ -79,19 +76,19 @@ function CategoryDetailContent() {
   const categoryImage = categoryData?.image;
 
   return (
-    <div className="bg-[#faf6f2] min-h-screen py-8 sm:py-12">
+    <div className="bg-[#0d0d0d] min-h-screen py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[#8c7e83]">
-          <Link href="/" className="hover:text-[#b45f77]">
+        <div className="flex items-center gap-2 text-xs text-[#a89b95]">
+          <Link href="/" className="hover:text-[#d43b4a]">
             Home
           </Link>
           <span>/</span>
-          <Link href="/shop" className="hover:text-[#b45f77]">
+          <Link href="/shop" className="hover:text-[#d43b4a]">
             Shop
           </Link>
           <span>/</span>
-          <span className="font-semibold text-[#201a1c]">{categoryName}</span>
+          <span className="font-semibold text-[#f3eee8]">{categoryName}</span>
         </div>
 
         {/* Hero Category Card */}
@@ -108,7 +105,7 @@ function CategoryDetailContent() {
             </div>
           )}
           <div className="relative z-10 max-w-xl space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#b45f77]/30 text-[#dc8ba0] border border-[#b45f77]/50">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#d43b4a]/30 text-[#dc8ba0] border border-[#d43b4a]/50">
               <Sparkles className="w-3.5 h-3.5" />
               Featured Collection
             </span>
@@ -118,15 +115,15 @@ function CategoryDetailContent() {
         </div>
 
         {/* Action Header */}
-        <div className="flex items-center justify-between border-b border-[#efe8e1] pb-4">
-          <p className="text-xs sm:text-sm font-semibold text-[#6b5e62]">
-            Showing <strong className="text-[#201a1c]">{products.length}</strong> items in{' '}
+        <div className="flex items-center justify-between border-b border-[#ffffff14] pb-4">
+          <p className="text-xs sm:text-sm font-semibold text-[#b7aaa4]">
+            Showing <strong className="text-[#f3eee8]">{products.length}</strong> items in{' '}
             {categoryName}
           </p>
 
           <Link
             href={`/shop?category=${slug}`}
-            className="px-3.5 py-2 bg-white border border-[#efe8e1] rounded-xl text-xs font-bold text-[#b45f77] hover:bg-[#faf6f2] flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 bg-[#161616] border border-[#ffffff14] rounded-xl text-xs font-bold text-[#d43b4a] hover:bg-[#0d0d0d] flex items-center gap-1.5 transition-colors"
           >
             <Filter className="w-3.5 h-3.5" />
             <span>Open in Full Filter View</span>
@@ -141,13 +138,13 @@ function CategoryDetailContent() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-3xl p-12 text-center border border-[#efe8e1] space-y-4">
-            <p className="text-sm font-semibold text-[#201a1c]">
+          <div className="bg-[#161616] rounded-3xl p-12 text-center border border-[#ffffff14] space-y-4">
+            <p className="text-sm font-semibold text-[#f3eee8]">
               New products in this collection are arriving soon!
             </p>
             <Link
               href="/shop"
-              className="inline-block px-5 py-2.5 bg-[#b45f77] text-white text-xs font-bold rounded-xl"
+              className="inline-block px-5 py-2.5 bg-[#d43b4a] text-white text-xs font-bold rounded-xl"
             >
               Browse All Collections
             </Link>
@@ -162,7 +159,7 @@ export default function CategoryPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-16 text-center text-sm text-[#6b5e62]">
+        <div className="p-16 text-center text-sm text-[#b7aaa4]">
           Loading collection...
         </div>
       }

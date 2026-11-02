@@ -37,7 +37,7 @@ export default function AdminCategoriesPage() {
       const res = await fetch('/api/categories');
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.categories && data.categories.length > 0) {
+        if (data.success && data.categories) {
           setCategories(data.categories);
         }
       }
@@ -49,7 +49,11 @@ export default function AdminCategoriesPage() {
   };
 
   useEffect(() => {
-    fetchCategories();
+    let active = true;
+    fetch('/api/categories').then((res) => res.json()).then((data) => {
+      if (active && data.success) setCategories(data.categories);
+    }).catch(() => { if (active) setFeedback({ type: 'error', text: 'Could not load categories. Please retry.' }); });
+    return () => { active = false; };
   }, []);
 
   const openAddModal = () => {

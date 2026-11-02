@@ -22,7 +22,9 @@ if (!global.mongooseCache) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
+  if (process.env.NODE_ENV !== 'production' && process.env.ISHARA_DEMO_MODE === '1') return null;
   if (!MONGODB_URI) {
+    if (process.env.NODE_ENV === 'production') throw new Error('MONGODB_URI must be configured in production.');
     // If MONGODB_URI is not set yet in local .env, return null gracefully so callers can fallback to mock/in-memory data
     console.warn('⚠️ MONGODB_URI is not set. Operating in fallback data mode.');
     return null;

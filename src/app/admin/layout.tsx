@@ -30,7 +30,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isLoginPage) {
-      setIsAuthenticated(true);
       return;
     }
 
@@ -66,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Close mobile drawer on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    queueMicrotask(() => setIsMobileMenuOpen(false));
   }, [pathname]);
 
   if (isLoginPage) {

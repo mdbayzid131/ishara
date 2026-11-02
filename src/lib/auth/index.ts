@@ -26,6 +26,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function signAdminToken(admin: AdminJwtPayload): string {
+  if (!JWT_SECRET) throw new Error('JWT_SECRET is required to sign sessions.');
   return jwt.sign(admin, JWT_SECRET, {
     expiresIn: '7d',
   });

@@ -6,87 +6,8 @@ import OrderDetailModal, { AdminOrderDetail } from '@/components/admin/OrderDeta
 import OrderInvoiceModal from '@/components/admin/OrderInvoiceModal';
 import { OrderStatus } from '@/models/Order';
 
-const FALLBACK_ORDERS: AdminOrderDetail[] = [
-  {
-    orderNumber: 'ISH-2610-8421',
-    createdAt: new Date().toISOString(),
-    status: 'pending',
-    paymentMethod: 'COD',
-    customer: {
-      name: 'Tasmia Haque',
-      phone: '01712998877',
-      address: 'House 12, Road 4, Sector 7, Uttara, Dhaka',
-      deliveryZoneName: 'Inside Dhaka',
-      notes: 'Please call before delivery',
-    },
-    items: [
-      {
-        productId: 'prod-01',
-        title: 'Classic Mini Crossbody Bag',
-        variantName: 'Champagne Beige',
-        variantSku: 'BAG-MINI-BEG',
-        price: 1850,
-        quantity: 1,
-        subtotal: 1850,
-      },
-      {
-        productId: 'prod-02',
-        title: 'Celestial Baroque Pearl Choker',
-        variantName: 'Gold / White Pearl',
-        variantSku: 'JWL-CHK-GLD',
-        price: 1290,
-        quantity: 1,
-        subtotal: 1290,
-      },
-    ],
-    subtotal: 3140,
-    deliveryFee: 0,
-    discount: 0,
-    totalAmount: 3140,
-    timeline: [
-      {
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-        note: 'Order placed via Cash on Delivery (COD) guest checkout.',
-        actor: 'Customer',
-      },
-    ],
-  },
-  {
-    orderNumber: 'ISH-2610-8419',
-    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    status: 'confirmed',
-    paymentMethod: 'COD',
-    customer: {
-      name: 'Mahmudul Hasan',
-      phone: '01819554433',
-      address: 'Chowdhury Bari, GEC Circle, Chittagong',
-      deliveryZoneName: 'Outside Dhaka',
-    },
-    items: [
-      {
-        productId: 'prod-01',
-        title: 'Classic Mini Crossbody Bag',
-        variantName: 'Noir Black',
-        variantSku: 'BAG-MINI-BLK',
-        price: 1850,
-        quantity: 1,
-        subtotal: 1850,
-      },
-    ],
-    subtotal: 1850,
-    deliveryFee: 130,
-    discount: 0,
-    totalAmount: 1980,
-    courier: {
-      provider: 'Steadfast Courier',
-      trackingCode: 'STDF-881923',
-    },
-  },
-];
-
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<AdminOrderDetail[]>(FALLBACK_ORDERS);
+  const [orders, setOrders] = useState<AdminOrderDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,7 +21,7 @@ export default function AdminOrdersPage() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.orders && data.orders.length > 0) {
+        if (data.success && data.orders) {
           setOrders(data.orders);
         }
       }

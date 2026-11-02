@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Order } from '@/models/Order';
 import { Product } from '@/models/Product';
-import { PRODUCTS } from '@/data/mockProducts';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -88,51 +87,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Fallback mode (when MongoDB is not connected in local development)
-    const fallbackLowStock = PRODUCTS.filter((p) => p.totalStock < 25);
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalRevenue: 24580,
-        totalOrders: 14,
-        pendingOrders: 3,
-        confirmedOrders: 4,
-        processingOrders: 2,
-        shippedOrders: 3,
-        deliveredOrders: 2,
-        cancelledOrders: 0,
-        lowStockCount: fallbackLowStock.length,
-        lowStockItems: fallbackLowStock.map((p) => ({
-          id: p.id,
-          title: p.title,
-          slug: p.slug,
-          totalStock: p.totalStock,
-          variants: p.variants,
-        })),
-        recentOrders: [
-          {
-            id: 'ISH-2610-8421',
-            customer: 'Tasmia Haque',
-            phone: '01712998877',
-            zone: 'Inside Dhaka',
-            itemsCount: 2,
-            total: 3140,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'ISH-2610-8419',
-            customer: 'Mahmudul Hasan',
-            phone: '01819554433',
-            zone: 'Outside Dhaka',
-            itemsCount: 1,
-            total: 1980,
-            status: 'confirmed',
-            createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-          },
-        ],
-      },
-    });
+    return NextResponse.json({ error: 'Database not connected. Statistics are unavailable.' }, { status: 503 });
   } catch (error: unknown) {
     if (typeof error === 'object' && error !== null && 'digest' in error && String((error as { digest: string }).digest).startsWith('NEXT_PRERENDER_')) {
       throw error;

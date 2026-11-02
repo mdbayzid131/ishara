@@ -1,9 +1,12 @@
 import type { MetadataRoute } from 'next';
+import { connection } from 'next/server';
+import { Category } from '@/models/Category';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Product } from '@/models/Product';
 import { CATEGORIES, PRODUCTS } from '@/data/mockProducts';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await connection();
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ishara.com.bd';
   const now = new Date();
 
@@ -66,55 +69,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // Category dedicated routes & filter routes
-  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.flatMap((cat) => [
-    {
-      url: `${baseUrl}/categories/${encodeURIComponent(cat.slug)}`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/shop?category=${encodeURIComponent(cat.slug)}`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-  ]);
-
-  // Dynamic products from database with fallback to seed products
-  let productRoutes: MetadataRoute.Sitemap = [];
   try {
-    await connectToDatabase();
-    const dbProducts = await Product.find(
-      { status: { $ne: 'archived' } },
-      'slug updatedAt'
-    ).lean();
-
-    if (dbProducts && dbProducts.length > 0) {
-      productRoutes = dbProducts.map((p) => ({
-        url: `${baseUrl}/products/${p.slug}`,
-        lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      }));
-    } else {
-      // Fallback to static mock products
-      productRoutes = PRODUCTS.map((p) => ({
-        url: `${baseUrl}/products/${p.slug}`,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      }));
-    }
-  } catch (err) {
-    console.warn('Database query failed for sitemap, falling back to mock products:', err);
-    productRoutes = PRODUCTS.map((p) => ({
-      url: `${baseUrl}/products/${p.slug}`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    }));
+    const db = await connectToDatabase();
+    const [categories, products] = db ? await Promise.all([
+      Category.find({ isActive: true }, 'slug updatedAt').lean(),
+      Product.find({ status: 'published' }, 'slug updatedAt').lean(),
+    ]) : [CATEGORIES.map((category) => ({ slug: category.slug, updatedAt: now })), PRODUCTS.map((product) => ({ slug: product.slug, updatedAt: now }))];
+    const categoryRoutes: MetadataRoute.Sitemap = categories.map((category) => ({ url: baseUrl + '/categories/' + encodeURIComponent(category.slug), lastModified: category.updatedAt || now, changeFrequency: 'weekly', priority: 0.7 }));
+    const productRoutes: MetadataRoute.Sitemap = products.map((product) => ({ url: baseUrl + '/products/' + encodeURIComponent(product.slug), lastModified: product.updatedAt || now, changeFrequency: 'weekly', priority: 0.8 }));
+    return [...staticRoutes, ...categoryRoutes, ...productRoutes];
+  } catch {
+    // A database outage must not publish draft or fabricated product URLs.
+    return staticRoutes;
   }
-
-  return [...staticRoutes, ...categoryRoutes, ...productRoutes];
 }

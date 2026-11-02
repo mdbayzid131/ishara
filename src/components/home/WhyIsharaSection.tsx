@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useStore } from '@/context/StoreContext';
 import { ChevronDown, CheckCircle2, ShieldCheck, Headphones } from 'lucide-react';
 
 const FAQS = [
   {
     q: 'Can I check the product before paying the delivery rider?',
-    a: 'Yes, absolutely! With our 100% Cash on Delivery (COD) service, you can open and inspect the package in front of the courier delivery rider before paying.',
+    a: 'Please check the package condition when it arrives. Opening a parcel before payment depends on the courier’s policy; contact our team if you need help.',
   },
   {
     q: 'How much is the delivery charge and how long does it take?',
@@ -23,6 +24,8 @@ const FAQS = [
 ];
 
 export default function WhyIsharaSection() {
+  const { settings } = useStore();
+  const faqs = FAQS.map((faq, index) => index === 1 ? { ...faq, a: `Inside Dhaka delivery is ৳${settings.insideDhakaFee} (1–2 days). Outside Dhaka is ৳${settings.outsideDhakaFee} (2–4 days). Free delivery applies inside Dhaka on orders of ৳${settings.freeShippingThreshold} or more. Your final delivery fee is shown at checkout.` } : faq);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
@@ -36,7 +39,7 @@ export default function WhyIsharaSection() {
                 The Ishara Promise
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#201a1c] mt-1">
-                Why Thousands of Women Love Shopping With Us
+                Shopping made simple, every step
               </h2>
             </div>
 
@@ -83,7 +86,7 @@ export default function WhyIsharaSection() {
               Frequently Asked Questions (FAQ)
             </h3>
 
-            {FAQS.map((faq, index) => {
+            {faqs.map((faq, index) => {
               const isOpen = openIndex === index;
               return (
                 <div
@@ -91,6 +94,8 @@ export default function WhyIsharaSection() {
                   className="border border-[#efe8e1] rounded-2xl overflow-hidden bg-[#faf6f2]/40 transition-all"
                 >
                   <button
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${index}`}
                     onClick={() => setOpenIndex(isOpen ? null : index)}
                     className="w-full py-4 px-5 flex items-center justify-between text-left gap-4 hover:bg-[#faf6f2] transition-colors"
                   >
@@ -105,7 +110,7 @@ export default function WhyIsharaSection() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-4 pt-1 text-xs sm:text-sm text-[#6b5e62] leading-relaxed border-t border-[#efe8e1]/60">
+                    <div id={`faq-answer-${index}`} className="px-5 pb-4 pt-1 text-xs sm:text-sm text-[#6b5e62] leading-relaxed border-t border-[#efe8e1]/60">
                       {faq.a}
                     </div>
                   )}

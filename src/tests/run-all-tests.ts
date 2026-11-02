@@ -4,6 +4,7 @@
  */
 
 import { runBusinessRulesTests } from './business-rules.test';
+import { runCheckoutRegressionTests } from './checkout-regressions.test';
 
 async function main() {
   console.log('\n======================================================');
@@ -13,6 +14,7 @@ async function main() {
   try {
     // 1. Run Unit / Business Rules Tests
     runBusinessRulesTests();
+    await runCheckoutRegressionTests();
 
     // 2. Run Integration Tests
     console.log('\nStarting API & Security Integration Tests...');

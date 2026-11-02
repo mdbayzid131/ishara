@@ -1,236 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingBag, Search, Menu, X, Phone, Truck, ShieldCheck } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, ArrowUpRight, Truck, Wallet, RotateCcw, Phone, Heart, UserRound } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { CATEGORIES } from '@/data/mockProducts';
+import { useStore } from '@/context/StoreContext';
+import { useWishlist } from '@/context/WishlistContext';
 
 export default function Navbar() {
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
   const { totalItems, setIsCartOpen } = useCart();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  // Do not render storefront consumer header on admin pages
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
-  return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#efe8e1] transition-all">
-      {/* Top Announcement Bar */}
-      <div className="bg-[#b45f77] text-white text-xs py-2 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 text-center font-medium">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Truck className="w-3.5 h-3.5" /> Fast Delivery across Bangladesh
-            </span>
-            <span className="hidden md:inline">•</span>
-            <span className="hidden md:flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> 100% Cash on Delivery
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-[11px] sm:text-xs">
-            <span className="text-white/90">Customer Support: +880 1711-223344</span>
-            <Link href="/track-order" className="underline underline-offset-2 hover:text-white/80 font-semibold">
-              Track Order
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Mobile menu button */}
-          <div className="flex items-center lg:hidden">
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-md text-[#201a1c] hover:text-[#b45f77] hover:bg-[#faf6f2]"
-              aria-label="Toggle navigation menu"
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Brand Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative w-36 h-12 sm:w-44 sm:h-14">
-                <Image
-                  src="/images/ishara-logo.png"
-                  alt="Ishara - Elegance in Blush and Rose Gold"
-                  fill
-                  sizes="(max-width: 640px) 144px, 176px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </Link>
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-8">
-            <Link
-              href="/"
-              className="text-sm font-medium text-[#201a1c] hover:text-[#b45f77] transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              href="/shop"
-              className="text-sm font-medium text-[#201a1c] hover:text-[#b45f77] transition-colors"
-            >
-              All Products
-            </Link>
-            {CATEGORIES.slice(0, 3).map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/shop?category=${cat.slug}`}
-                className="text-sm font-medium text-[#6b5e62] hover:text-[#b45f77] transition-colors"
-              >
-                {cat.name}
-              </Link>
-            ))}
-            <Link
-              href="/about"
-              className="text-sm font-medium text-[#6b5e62] hover:text-[#b45f77] transition-colors"
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className="text-sm font-medium text-[#6b5e62] hover:text-[#b45f77] transition-colors"
-            >
-              Contact
-            </Link>
-          </nav>
-
-          {/* Action Icons: Search & Cart */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 rounded-full text-[#201a1c] hover:text-[#b45f77] hover:bg-[#faf6f2] transition-colors"
-              aria-label="Search products"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2.5 rounded-full bg-[#fdf5f7] text-[#b45f77] hover:bg-[#b45f77] hover:text-white transition-all shadow-sm flex items-center justify-center"
-              aria-label="View shopping bag"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#201a1c] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
-                  {totalItems}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Expandable Search Bar */}
-        {isSearchOpen && (
-          <div className="py-3 px-2 border-t border-[#efe8e1] animate-in fade-in slide-in-from-top-2 duration-200">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchQuery.trim()) {
-                  router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
-                  setIsSearchOpen(false);
-                }
-              }}
-              className="relative max-w-2xl mx-auto flex items-center"
-            >
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search bags, jewelry, sunglasses, gadgets..."
-                className="w-full bg-[#faf6f2] border border-[#efe8e1] rounded-full py-2.5 pl-11 pr-24 text-sm text-[#201a1c] focus:outline-none focus:border-[#b45f77] focus:ring-1 focus:ring-[#b45f77]"
-                autoFocus
-              />
-              <Search className="absolute left-4 w-4 h-4 text-[#6b5e62]" />
-              <button
-                type="submit"
-                className="absolute right-1.5 px-4 py-1.5 bg-[#b45f77] text-white text-xs font-semibold rounded-full hover:bg-[#9e4a62] transition-colors"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#efe8e1] bg-white px-4 pt-3 pb-6 shadow-xl animate-in fade-in duration-200">
-          <div className="space-y-1">
-            <Link
-              href="/"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2.5 rounded-lg text-base font-medium text-[#201a1c] hover:bg-[#faf6f2] hover:text-[#b45f77]"
-            >
-              Home
-            </Link>
-            <Link
-              href="/shop"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2.5 rounded-lg text-base font-medium text-[#201a1c] hover:bg-[#faf6f2] hover:text-[#b45f77]"
-            >
-              All Products
-            </Link>
-            <div className="pt-2 pb-1 px-3 text-xs font-semibold text-[#6b5e62] uppercase tracking-wider">
-              Categories
-            </div>
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/shop?category=${cat.slug}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-[#6b5e62] hover:bg-[#faf6f2] hover:text-[#b45f77]"
-              >
-                {cat.name}
-              </Link>
-            ))}
-            <Link
-              href="/about"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-[#6b5e62] hover:bg-[#faf6f2] hover:text-[#b45f77]"
-            >
-              About Ishara
-            </Link>
-            <Link
-              href="/contact"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-[#6b5e62] hover:bg-[#faf6f2] hover:text-[#b45f77]"
-            >
-              Contact Support
-            </Link>
-            <div className="pt-4 border-t border-[#efe8e1] space-y-2">
-              <Link
-                href="/track-order"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2.5 rounded-lg text-sm font-medium text-[#b45f77] bg-[#fdf5f7]"
-              >
-                📦 Track My Order
-              </Link>
-              <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#6b5e62]">
-                <Phone className="w-3.5 h-3.5 text-[#b45f77]" />
-                Call/WhatsApp: +880 1711-223344
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
-  );
+  const { settings } = useStore();
+  const { items: saved } = useWishlist();
+  const [menu, setMenu] = useState(false);
+  const [search, setSearch] = useState(false);
+  const [query, setQuery] = useState('');
+  if (pathname.startsWith('/admin')) return null;
+  const links = [['Home', '/'], ['Shop', '/shop'], ['About', '/about'], ['Contact', '/contact']];
+  function submit(event: FormEvent) { event.preventDefault(); if (query.trim()) { router.push(`/shop?q=${encodeURIComponent(query.trim())}`); setSearch(false); setMenu(false); } }
+  return <header className="studio-header compact-header"><div className="studio-topbar"><span><Truck size={12} />Nationwide Delivery<i /><Wallet size={12} />Cash on Delivery<i /><RotateCcw size={12} /><Link href="/return-refund-policy">Returns & Exchanges</Link><i /><Phone size={12} /><a href={`tel:${settings.phone.replace(/[^+0-9]/g, '')}`}>Call: {settings.phone}</a></span><Link href="/track-order">Track order <ArrowUpRight size={12} /></Link></div>
+    <div className="studio-nav"><Link className="compact-brand" href="/" aria-label="Ishara home" onClick={() => setMenu(false)}><span className="brand-monogram">I<span>.</span></span><span>ISHARA<span className="brand-dot">.</span></span></Link><nav aria-label="Main navigation" className="desktop-nav">{links.map(([label, href]) => <Link href={href} key={label} className={(href === '/' ? pathname === '/' : pathname.startsWith(href)) ? 'is-active' : ''}>{label}</Link>)}</nav><form className="header-search" onSubmit={submit}><Search size={15} /><input aria-label="Search products" placeholder="Search products…" value={query} onChange={(event) => setQuery(event.target.value)} /><button type="submit" aria-label="Submit search"><ArrowUpRight size={13} /></button></form><div className="nav-actions"><button className="mobile-search-toggle" aria-label="Open product search" aria-expanded={search} onClick={() => setSearch(!search)}><Search size={19} /></button><Link className="nav-saved" href="/wishlist" aria-label={`Saved products${saved.length ? `, ${saved.length} items` : ''}`}><Heart size={19} />{saved.length > 0 && <span>{saved.length}</span>}</Link><Link href="/track-order" aria-label="My orders" className="nav-orders"><UserRound size={19} /></Link><button className="nav-bag" aria-label={`View shopping bag${totalItems ? `, ${totalItems} items` : ''}`} onClick={() => setIsCartOpen(true)}><ShoppingBag size={19} /><span className="bag-count">{totalItems}</span></button><button className="mobile-nav-toggle" aria-label={menu ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X size={22} /> : <Menu size={22} />}</button></div></div>
+    {search && <form className="studio-search" onSubmit={submit}><Search size={18} /><input type="search" autoFocus aria-label="Search the collection" placeholder="Search dresses, beauty, accessories…" value={query} onChange={(event) => setQuery(event.target.value)} /><button type="submit">Search</button><button type="button" aria-label="Close search" onClick={() => setSearch(false)}><X size={18} /></button></form>}
+    {menu && <nav className="studio-mobile-menu" aria-label="Mobile navigation">{[...links, ['Dresses', '/shop?category=dresses'], ['Beauty', '/shop?category=beauty'], ['Saved pieces', '/wishlist']].map(([label, href]) => <Link href={href} key={label} onClick={() => setMenu(false)}>{label}<ArrowUpRight size={17} /></Link>)}</nav>}
+  </header>;
 }

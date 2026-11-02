@@ -2,6 +2,7 @@
 import { connectToDatabase } from '@/lib/db/connect';
 import { Product } from '@/models/Product';
 import { PRODUCTS } from '@/data/mockProducts';
+import { STUDIO_PRODUCTS } from '@/data/studioCollection';
 
 export async function GET(
   req: NextRequest,
@@ -20,7 +21,7 @@ export async function GET(
     if (db) {
       const product = await Product.findOne({
         slug: cleanSlug,
-        status: { $in: ['published', 'draft'] },
+        status: 'published',
       }).lean();
 
       if (product) {
@@ -29,13 +30,15 @@ export async function GET(
           product: {
             ...product,
             id: product._id.toString(),
+            variants: product.variants.map((variant) => ({ ...variant, id: variant.sku })),
           },
         });
       }
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     // Fallback to in-memory mock catalog
-    const mockProduct = PRODUCTS.find((p) => p.slug === cleanSlug);
+    const mockProduct = [...STUDIO_PRODUCTS, ...PRODUCTS].find((p) => p.slug === cleanSlug);
 
     if (mockProduct) {
       return NextResponse.json({

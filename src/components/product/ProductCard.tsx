@@ -1,130 +1,26 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Star, ShoppingBag, Zap } from 'lucide-react';
-import { Product } from '@/types';
+import { ArrowUpRight, Plus, Heart } from 'lucide-react';
+import type { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 
-interface ProductCardProps {
-  product: Product;
-}
-
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
-  const { addToCart, buyNow } = useCart();
-
-  const discountPercent = product.compareAtPrice
-    ? Math.round(((product.compareAtPrice - product.basePrice) / product.compareAtPrice) * 100)
-    : 0;
-
-  const handleQuickBuy = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const defaultVariant = product.variants?.[0];
-    buyNow(product, defaultVariant, 1);
-    router.push('/checkout');
-  };
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const defaultVariant = product.variants?.[0];
-    addToCart(product, defaultVariant, 1);
-  };
-
-  return (
-    <div className="group bg-white rounded-2xl border border-[#efe8e1] overflow-hidden card-shadow card-hover flex flex-col h-full relative">
-      {/* Product Image & Badges */}
-      <Link href={`/products/${product.slug}`} className="relative block aspect-square overflow-hidden bg-[#faf6f2]">
-        <Image
-          src={product.images?.[0] || '/images/ishara-logo.png'}
-          alt={product.title}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
-        />
-
-        {/* Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
-          {product.badge && (
-            <span className="px-2.5 py-1 bg-[#b45f77] text-white text-[10px] font-bold rounded-full tracking-wider uppercase shadow-xs">
-              {product.badge}
-            </span>
-          )}
-          {discountPercent > 0 && (
-            <span className="px-2 py-0.5 bg-[#201a1c] text-white text-[10px] font-bold rounded-full shadow-xs">
-              {discountPercent}% OFF
-            </span>
-          )}
-        </div>
-
-        {/* Variant Count Pill */}
-        {product.hasVariants && product.variants.length > 1 && (
-          <div className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-xs text-[#201a1c] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#efe8e1] shadow-xs">
-            {product.variants.length} options
-          </div>
-        )}
-      </Link>
-
-      {/* Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] text-[#6b5e62] mb-1">
-            <span className="uppercase tracking-wider font-medium text-[#b45f77]">
-              {product.category}
-            </span>
-            <span>•</span>
-            <div className="flex items-center gap-0.5 text-amber-500 font-semibold">
-              <Star className="w-3 h-3 fill-amber-400 stroke-amber-400" />
-              <span>{product.rating}</span>
-              <span className="text-[#8c7e83]">({product.reviewsCount})</span>
-            </div>
-          </div>
-
-          <Link href={`/products/${product.slug}`} className="block">
-            <h3 className="text-sm font-semibold text-[#201a1c] group-hover:text-[#b45f77] transition-colors line-clamp-2">
-              {product.title}
-            </h3>
-          </Link>
-        </div>
-
-        {/* Pricing & Actions */}
-        <div className="pt-2 border-t border-[#efe8e1]/60">
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-base sm:text-lg font-bold text-[#b45f77]">
-              ৳{product.basePrice.toLocaleString()}
-            </span>
-            {product.compareAtPrice && (
-              <span className="text-xs text-[#8c7e83] line-through">
-                ৳{product.compareAtPrice.toLocaleString()}
-              </span>
-            )}
-          </div>
-
-          {/* Quick Buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-2 px-2.5 rounded-xl border border-[#b45f77] text-[#b45f77] hover:bg-[#b45f77] hover:text-white text-xs font-semibold flex items-center justify-center gap-1 transition-all"
-              aria-label="Add to bag"
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Add</span>
-            </button>
-            <button
-              onClick={handleQuickBuy}
-              className="w-full py-2 px-2.5 rounded-xl bg-[#b45f77] hover:bg-[#9e4a62] text-white text-xs font-semibold flex items-center justify-center gap-1 transition-all shadow-xs"
-              aria-label="Order now"
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Buy Now</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const { items: savedItems, toggle } = useWishlist();
+  const saved = savedItems.some((item) => item.slug === product.slug);
+  const { buyNow } = useCart();
+  const preview = product.badge === 'Studio preview';
+  const soldOut = product.totalStock <= 0 || (product.hasVariants && !product.variants.some((variant) => variant.stock > 0));
+  function order() {
+    if (preview || product.hasVariants) { router.push(`/products/${product.slug}`); return; }
+    if (soldOut) return;
+    buyNow(product, undefined, 1); router.push('/checkout');
+  }
+  const discount = product.compareAtPrice && product.compareAtPrice > product.basePrice ? Math.round((1 - product.basePrice / product.compareAtPrice) * 100) : 0;
+  const sizes = [...new Set(product.variants.map((variant) => variant.attributes?.size).filter(Boolean))];
+  return <article className="studio-product-card"><div className="product-visual"><Link href={`/products/${product.slug}`} className="product-image-link" aria-label={`View ${product.title}`}><Image src={product.images[0] || '/images/ishara-emblem.png'} alt={product.title} fill sizes="(max-width: 640px) 75vw, (max-width: 1024px) 40vw, 25vw" className="product-photo" />{product.images[1] && <Image src={product.images[1]} alt="" fill sizes="(max-width: 640px) 75vw, 25vw" className="product-photo product-photo-alt" />}</Link><span className={`product-badge ${preview ? 'is-preview' : ''}`}>{preview ? 'STUDIO PREVIEW' : soldOut ? 'SOLD OUT' : discount ? `−${discount}%` : product.badge || 'THE ISHARA EDIT'}</span><button type="button" className={`product-save ${saved ? 'is-saved' : ''}`} aria-label={`${saved ? 'Unsave' : 'Save'} ${product.title}`} aria-pressed={saved} onClick={() => toggle(product)}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button><Link href={`/products/${product.slug}`} className="product-quickview" aria-label={`Explore ${product.title}`}><ArrowUpRight size={19} /></Link><div className="product-hover-strip"><span>{preview ? 'A FIRST LOOK, BY ISHARA' : 'DISCOVER YOUR NEXT FAVOURITE'}</span><ArrowUpRight size={16} /></div></div><div className="product-meta"><div className="product-meta-line"><span>{product.category}</span><div className="product-options">{sizes.length ? sizes.slice(0, 3).map((size) => <span key={size}>{size}</span>) : <span className="color-swatch" style={{ background: product.categorySlug === 'beauty' ? '#a46664' : '#b8a28a' }} />}</div></div><Link className="product-title" href={`/products/${product.slug}`}>{product.title}</Link><div className="product-price-line"><div><span className="product-price">৳{product.basePrice.toLocaleString()}</span>{discount > 0 && <del>৳{product.compareAtPrice?.toLocaleString()}</del>}{preview && <small>illustrative price</small>}</div><button className="product-order-button" disabled={!preview && soldOut} aria-label={preview ? `View ${product.title} concept` : `Order ${product.title}`} onClick={order}>{preview ? <ArrowUpRight size={17} /> : <Plus size={17} />}</button></div></div></article>;
 }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Product, IProduct, IProductVariant } from '@/models/Product';
-import { Order, IOrderItem } from '@/models/Order';
-import { PRODUCTS } from '@/data/mockProducts';
-import { DELIVERY_ZONES, FREE_SHIPPING_THRESHOLD } from '@/config/delivery';
+import { Order, IOrder, IOrderItem } from '@/models/Order';
+import { normalizePhone } from '@/lib/phone';
+import { getDeliveryPricing } from '@/lib/store';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/security/rateLimit';
 
@@ -17,12 +17,13 @@ const orderItemSchema = z.object({
 });
 
 const createOrderSchema = z.object({
+  expectedTotal: z.number().min(0).optional(),
   customer: z.object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters'),
     phone: z
       .string()
       .trim()
-      .transform((val) => val.replace(/[^0-9]/g, ''))
+      .transform(normalizePhone)
       .refine(
         (val) => /^01[3-9]\d{8}$/.test(val),
         'Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01711223344)'
@@ -32,7 +33,7 @@ const createOrderSchema = z.object({
     deliveryZone: z.enum(['inside_dhaka', 'outside_dhaka']),
     notes: z.string().optional().default(''),
   }),
-  items: z.array(orderItemSchema).min(1, 'Order must contain at least one product'),
+  items: z.array(orderItemSchema).min(1, 'Order must contain at least one product').max(100),
   marketing: z
     .object({
       utmSource: z.string().optional(),
@@ -48,8 +49,16 @@ function generateOrderNumber(): string {
   const date = new Date();
   const yy = date.getFullYear().toString().slice(-2);
   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = crypto.randomBytes(6).toString('hex').toUpperCase();
   return `ISH-${yy}${mm}-${randomSuffix}`;
+}
+
+function orderResponse(order: IOrder) {
+  return NextResponse.json({ success: true, orderNumber: order.orderNumber, accessToken: order.accessToken, order: {
+    orderNumber: order.orderNumber, customer: order.customer, items: order.items,
+    subtotal: order.subtotal, deliveryFee: order.deliveryFee, totalAmount: order.totalAmount,
+    paymentMethod: order.paymentMethod, status: order.status, createdAt: order.createdAt,
+  } });
 }
 
 export async function POST(req: NextRequest) {
@@ -89,25 +98,26 @@ export async function POST(req: NextRequest) {
     const { customer, items } = parsed.data;
     const db = await connectToDatabase();
 
-    const selectedZoneConfig =
-      DELIVERY_ZONES.find((z) => z.id === customer.deliveryZone) || DELIVERY_ZONES[0];
-
-    const decrementedRollbackList: Array<{
-      productId: Types.ObjectId | string;
-      variantSku?: string;
-      quantity: number;
-    }> = [];
-
-    const orderItemSnapshots: IOrderItem[] = [];
-    let subtotal = 0;
-
-    if (db) {
+    if (!db) {
+      return NextResponse.json({ error: 'Ordering is temporarily unavailable. Your bag has been kept. Please try again later.' }, { status: 503 });
+    }
+    const idempotencyKey = req.headers.get('Idempotency-Key');
+    if (idempotencyKey && !/^[a-zA-Z0-9-]{16,100}$/.test(idempotencyKey)) return NextResponse.json({ error: 'Invalid request key' }, { status: 400 });
+    if (idempotencyKey) {
+      const previous = await Order.findOne({ idempotencyKey });
+      if (previous) return orderResponse(previous);
+    }
+    const session = await mongoose.startSession();
+    try {
+      const createdOrder = await session.withTransaction(async () => {
+      const orderItemSnapshots: IOrderItem[] = [];
+      let subtotal = 0;
       // 1. Process and atomically deduct each item from MongoDB
       for (const item of items) {
         const isObjectId = mongoose.Types.ObjectId.isValid(item.productId);
         const productFilter: Record<string, unknown> = isObjectId
-          ? { _id: item.productId }
-          : { slug: item.productId };
+          ? { _id: item.productId, status: 'published' }
+          : { slug: item.productId, status: 'published' };
 
         let updatedProduct: IProduct | null = null;
 
@@ -116,8 +126,8 @@ export async function POST(req: NextRequest) {
           updatedProduct = await Product.findOneAndUpdate(
             {
               ...productFilter,
-              'variants.sku': item.variantSku,
-              'variants.stock': { $gte: item.quantity },
+              hasVariants: true,
+              variants: { $elemMatch: { sku: item.variantSku, stock: { $gte: item.quantity } } },
             },
             {
               $inc: {
@@ -126,13 +136,14 @@ export async function POST(req: NextRequest) {
                 salesCount: item.quantity,
               },
             },
-            { new: true }
+            { returnDocument: 'after', session }
           );
         } else {
           // Atomically decrement product totalStock (non-variant item)
           updatedProduct = await Product.findOneAndUpdate(
             {
               ...productFilter,
+              hasVariants: false,
               totalStock: { $gte: item.quantity },
             },
             {
@@ -141,54 +152,11 @@ export async function POST(req: NextRequest) {
                 salesCount: item.quantity,
               },
             },
-            { new: true }
+            { returnDocument: 'after', session }
           );
         }
 
-        // If update failed, rollback all previously decremented items
-        if (!updatedProduct) {
-          for (const rollback of decrementedRollbackList) {
-            if (rollback.variantSku) {
-              await Product.findOneAndUpdate(
-                { _id: rollback.productId, 'variants.sku': rollback.variantSku },
-                {
-                  $inc: {
-                    'variants.$.stock': rollback.quantity,
-                    totalStock: rollback.quantity,
-                    salesCount: -rollback.quantity,
-                  },
-                }
-              );
-            } else {
-              await Product.findOneAndUpdate(
-                { _id: rollback.productId },
-                {
-                  $inc: {
-                    totalStock: rollback.quantity,
-                    salesCount: -rollback.quantity,
-                  },
-                }
-              );
-            }
-          }
-
-          // Fetch the product to give a friendly error message
-          const existing = await Product.findOne(productFilter).lean();
-          const itemName = existing ? existing.title : item.productId;
-          return NextResponse.json(
-            {
-              error: `Item "${itemName}" is currently out of stock or does not have sufficient quantity for your order.`,
-            },
-            { status: 400 }
-          );
-        }
-
-        // Track for rollback in case subsequent item fails
-        decrementedRollbackList.push({
-          productId: updatedProduct._id as Types.ObjectId,
-          variantSku: item.variantSku || undefined,
-          quantity: item.quantity,
-        });
+        if (!updatedProduct) throw new Error('STOCK_UNAVAILABLE');
 
         // Resolve snapshot pricing & details from authoritative database document
         let matchedVariant: IProductVariant | null = null;
@@ -222,11 +190,9 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Calculate final pricing
-      const isFreeShipping =
-        customer.deliveryZone === 'inside_dhaka' && subtotal >= FREE_SHIPPING_THRESHOLD;
-      const deliveryFee = isFreeShipping ? 0 : selectedZoneConfig.fee;
+      const { zone: selectedZoneConfig, deliveryFee } = await getDeliveryPricing(customer.deliveryZone, subtotal);
       const totalAmount = subtotal + deliveryFee;
+      if (parsed.data.expectedTotal !== undefined && Math.abs(parsed.data.expectedTotal - totalAmount) > 0.01) throw new Error('PRICE_CHANGED');
 
       // Unique Order Number Generation
       let orderNumber = generateOrderNumber();
@@ -237,8 +203,9 @@ export async function POST(req: NextRequest) {
       const accessToken = crypto.randomBytes(24).toString('hex');
 
       // Create Order Document
-      const createdOrder = await Order.create({
+      const [createdOrder] = await Order.create([{
         orderNumber,
+        idempotencyKey: idempotencyKey || undefined,
         accessToken,
         customer: {
           name: customer.name,
@@ -272,105 +239,27 @@ export async function POST(req: NextRequest) {
             actor: 'Customer',
           },
         ],
+      }], { session });
+      return createdOrder;
       });
 
-      return NextResponse.json({
-        success: true,
-        orderNumber: createdOrder.orderNumber,
-        accessToken: createdOrder.accessToken,
-        order: {
-          orderNumber: createdOrder.orderNumber,
-          customer: createdOrder.customer,
-          items: createdOrder.items,
-          subtotal: createdOrder.subtotal,
-          deliveryFee: createdOrder.deliveryFee,
-          totalAmount: createdOrder.totalAmount,
-          status: createdOrder.status,
-          createdAt: createdOrder.createdAt,
-        },
-      });
+      return orderResponse(createdOrder);
+    } finally {
+      await session.endSession();
     }
-
-    // 2. Fallback Mode (when MongoDB is not connected in local development)
-    for (const item of items) {
-      const mockProd = PRODUCTS.find(
-        (p) =>
-          p.id === item.productId ||
-          p.slug === item.productId ||
-          p.variants.some((v) => v.sku === item.variantSku)
-      );
-
-      if (!mockProd) {
-        return NextResponse.json(
-          { error: `Product not found: ${item.productId}` },
-          { status: 404 }
-        );
-      }
-
-      const matchedVariant = item.variantSku
-        ? mockProd.variants.find((v) => v.sku === item.variantSku)
-        : null;
-
-      const unitPrice =
-        matchedVariant?.price !== undefined && matchedVariant?.price !== null
-          ? matchedVariant.price
-          : mockProd.basePrice;
-
-      const itemSubtotal = unitPrice * item.quantity;
-      subtotal += itemSubtotal;
-
-      orderItemSnapshots.push({
-        productId: mockProd.id,
-        variantSku: item.variantSku || '',
-        title: mockProd.title,
-        variantName: matchedVariant?.name || '',
-        price: unitPrice,
-        quantity: item.quantity,
-        image:
-          matchedVariant?.image ||
-          (mockProd.images && mockProd.images[0]) ||
-          '/images/placeholder.jpg',
-        subtotal: itemSubtotal,
-      });
-    }
-
-    const isFreeShipping =
-      customer.deliveryZone === 'inside_dhaka' && subtotal >= FREE_SHIPPING_THRESHOLD;
-    const deliveryFee = isFreeShipping ? 0 : selectedZoneConfig.fee;
-    const totalAmount = subtotal + deliveryFee;
-    const orderNumber = generateOrderNumber();
-    const accessToken = crypto.randomBytes(24).toString('hex');
-
-    const fallbackOrder = {
-      orderNumber,
-      accessToken,
-      customer: {
-        name: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-        address: customer.address,
-        deliveryZone: customer.deliveryZone,
-        deliveryZoneName: selectedZoneConfig.name,
-        notes: customer.notes || '',
-      },
-      items: orderItemSnapshots,
-      subtotal,
-      deliveryFee,
-      discount: 0,
-      totalAmount,
-      status: 'pending',
-      paymentMethod: 'COD',
-      marketing: parsed.data.marketing || {},
-      createdAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json({
-      success: true,
-      orderNumber,
-      accessToken,
-      order: fallbackOrder,
-    });
   } catch (error) {
+    if (error instanceof Error && error.message === 'PRICE_CHANGED') {
+      return NextResponse.json({ error: 'A price or delivery charge changed. Please review the updated total before placing your order.' }, { status: 409 });
+    }
+    // Concurrent retries may race the unique index; return the committed order.
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      const key = req.headers.get('Idempotency-Key');
+      const previous = key ? await Order.findOne({ idempotencyKey: key }) : null;
+      if (previous) return orderResponse(previous);
+    }
+    if (error instanceof Error && error.message === 'STOCK_UNAVAILABLE') {
+      return NextResponse.json({ error: 'An item or selected option is no longer available in the requested quantity. Please update your bag.' }, { status: 409 });
+    }
     console.error('Order creation error:', error);
     return NextResponse.json(
       { error: 'An unexpected error occurred while placing your order. Please try again.' },

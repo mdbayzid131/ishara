@@ -9,10 +9,8 @@ import {
   Save,
   Plus,
   Trash2,
-  Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
 } from 'lucide-react';
 
 interface VariantInput {
@@ -290,7 +288,7 @@ export default function NewProductPage() {
               </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as 'draft' | 'published' | 'archived')}
                 className="w-full px-4 py-2.5 bg-[#faf6f2] border border-[#efe8e1] rounded-xl text-sm font-medium text-[#201a1c] focus:outline-none focus:border-[#b45f77] cursor-pointer"
               >
                 <option value="published">Published (Live in Store)</option>

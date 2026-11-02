@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Admin } from '@/models/Admin';
-import { verifyPassword, signAdminToken, ADMIN_COOKIE_NAME, hashPassword } from '@/lib/auth';
+import { verifyPassword, signAdminToken, ADMIN_COOKIE_NAME } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/security/rateLimit';
 
 const loginSchema = z.object({
@@ -50,35 +50,9 @@ export async function POST(req: NextRequest) {
 
     if (db) {
       adminRecord = await Admin.findOne({ email: email.toLowerCase() });
-      if (!adminRecord) {
-        // If no admin exists in the database at all yet, auto-create initial superadmin if credentials match default
-        const count = await Admin.countDocuments();
-        if (count === 0 && email.toLowerCase() === 'admin@ishara.com.bd' && password === 'IsharaAdmin2026!') {
-          const passwordHash = await hashPassword(password);
-          adminRecord = await Admin.create({
-            username: 'admin',
-            email: 'admin@ishara.com.bd',
-            name: 'Ishara Super Admin',
-            passwordHash,
-            role: 'superadmin',
-            isActive: true,
-          });
-        }
-      }
     }
 
-    // In local / fallback mode if DB is not configured yet
-    if (!db && email.toLowerCase() === 'admin@ishara.com.bd' && password === 'IsharaAdmin2026!') {
-      adminRecord = {
-        _id: 'mock-admin-01',
-        email: 'admin@ishara.com.bd',
-        name: 'Ishara Super Admin',
-        role: 'superadmin',
-        isActive: true,
-      };
-    }
-
-    if (!adminRecord) {
+    if (!adminRecord || !adminRecord.isActive) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }

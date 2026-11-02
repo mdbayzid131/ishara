@@ -44,7 +44,7 @@ export async function PATCH(
     const updated = await Category.findOneAndUpdate(
       { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { slug: id }] },
       { $set: result.data },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updated) {

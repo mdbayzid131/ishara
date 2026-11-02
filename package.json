@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx --env-file=.env.local src/scripts/seed.ts",
-    "test": "npx tsx src/tests/run-all-tests.ts"
+    "test": "tsx src/tests/run-all-tests.ts",
+    "test:db": "node --env-file=.env.local --import tsx src/tests/database.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -16,7 +18,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.55.0",
     "mongoose": "^9.11.1",
-    "next": "16.4.0",
+    "next": "^16.4.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "^3.7.0",
@@ -30,8 +32,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "^16.4.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

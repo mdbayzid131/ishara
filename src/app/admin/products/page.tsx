@@ -14,11 +14,11 @@ import {
   X,
   Save,
 } from 'lucide-react';
-import { PRODUCTS, CATEGORIES } from '@/data/mockProducts';
+import { CATEGORIES } from '@/data/mockProducts';
 import { Product, ProductVariant } from '@/types';
 
 export default function AdminProductsPage() {
-  const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
+  const [productsList, setProductsList] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +34,10 @@ export default function AdminProductsPage() {
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/products?limit=100');
+      const res = await fetch('/api/products?limit=100&includeUnpublished=1');
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.products && data.products.length > 0) {
+        if (data.success && data.products) {
           setProductsList(data.products);
         }
       }
@@ -50,10 +50,10 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch('/api/products?limit=100')
+    fetch('/api/products?limit=100&includeUnpublished=1')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.success && data.products && data.products.length > 0 && isMounted) {
+        if (data?.success && data.products && isMounted) {
           setProductsList(data.products);
         }
       })
@@ -67,7 +67,7 @@ export default function AdminProductsPage() {
   const handleOpenEdit = (prod: Product) => {
     setEditingProduct(prod);
     setEditTotalStock(prod.totalStock);
-    setEditStatus((prod as any).status || 'published');
+    setEditStatus(prod.status || 'published');
     setEditVariants(prod.variants ? JSON.parse(JSON.stringify(prod.variants)) : []);
     setFeedbackMsg(null);
   };
@@ -265,7 +265,7 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="py-4 px-6">
                     {(() => {
-                      const prodStatus = (p as any).status || 'published';
+                      const prodStatus = p.status || 'published';
                       const badgeClass =
                         prodStatus === 'published'
                           ? 'bg-emerald-100 text-emerald-800'

@@ -2,11 +2,11 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
-import { CATEGORIES } from '@/data/mockProducts';
+import type { Category } from '@/types';
 
-export default function CategorySection() {
+export default function CategorySection({ categories }: { categories: Category[] }) {
   return (
-    <section className="py-12 sm:py-16 bg-[#faf6f2]">
+    <section className="py-4 sm:py-6 bg-[#faf6f2]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
           <div>
@@ -27,11 +27,11 @@ export default function CategorySection() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <Link
               key={cat.id}
               href={`/shop?category=${cat.slug}`}
-              className="group relative aspect-4/5 rounded-2xl overflow-hidden shadow-xs border border-[#efe8e1] bg-white flex flex-col justify-end p-4 card-hover"
+              className="group relative aspect-square rounded-2xl overflow-hidden shadow-xs border border-[#efe8e1] bg-white flex flex-col justify-end p-4 card-hover"
             >
               <Image
                 src={cat.image}
@@ -44,7 +44,7 @@ export default function CategorySection() {
 
               <div className="relative z-10 text-white space-y-1">
                 <span className="text-[10px] uppercase tracking-wider text-rose-200 font-medium">
-                  {cat.itemCount} items
+                  {cat.itemCount ? `${cat.itemCount} items` : 'Explore collection'}
                 </span>
                 <h3 className="text-sm sm:text-base font-bold leading-tight">
                   {cat.name}

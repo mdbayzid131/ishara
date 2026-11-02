@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Product, IProduct, IProductVariant } from '@/models/Product';
 import { PRODUCTS } from '@/data/mockProducts';
-import { DELIVERY_ZONES, FREE_SHIPPING_THRESHOLD } from '@/config/delivery';
+import { STUDIO_PRODUCTS } from '@/data/studioCollection';
+import { getDeliveryPricing } from '@/lib/store';
 
 const quoteRequestSchema = z.object({
   items: z
@@ -14,7 +15,7 @@ const quoteRequestSchema = z.object({
         quantity: z.number().int().min(1).max(50),
       })
     )
-    .min(1, 'Cart cannot be empty'),
+    .min(1, 'Cart cannot be empty').max(100),
   deliveryZone: z.enum(['inside_dhaka', 'outside_dhaka']),
 });
 
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
 
     let subtotal = 0;
     const verifiedItems: VerifiedQuoteItem[] = [];
+    const requestedStock = new Map<string, number>();
 
     for (const item of items) {
       let productDoc: (IProduct & { id?: string }) | null = null;
@@ -64,8 +66,8 @@ export async function POST(req: NextRequest) {
       }
 
       // Fallback lookup if not found in DB
-      if (!productDoc) {
-        const fallback = PRODUCTS.find(
+      if (!db && !productDoc) {
+        const fallback = [...STUDIO_PRODUCTS, ...PRODUCTS].find(
           (p) =>
             p.id === item.productId ||
             p.slug === item.productId ||
@@ -91,6 +93,10 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      if ((productDoc.hasVariants && !matchedVariant) || (!productDoc.hasVariants && item.variantSku)) {
+        return NextResponse.json({ error: `Please choose an available option for ${productDoc.title}.` }, { status: 400 });
+      }
+
       const unitPrice =
         matchedVariant?.price !== undefined && matchedVariant?.price !== null
           ? matchedVariant.price
@@ -100,7 +106,10 @@ export async function POST(req: NextRequest) {
         ? matchedVariant.stock
         : productDoc.totalStock;
 
-      if (availableStock < item.quantity) {
+      const stockKey = `${productDoc._id || productDoc.id}:${matchedVariant?.sku || ''}`;
+      const requested = (requestedStock.get(stockKey) || 0) + item.quantity;
+      requestedStock.set(stockKey, requested);
+      if (availableStock < requested) {
         return NextResponse.json(
           {
             error: `Insufficient stock for "${productDoc.title}"${
@@ -130,18 +139,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const selectedZoneConfig =
-      DELIVERY_ZONES.find((z) => z.id === deliveryZone) || DELIVERY_ZONES[0];
-
-    const isFreeShipping =
-      deliveryZone === 'inside_dhaka' && subtotal >= FREE_SHIPPING_THRESHOLD;
-
-    const deliveryFee = isFreeShipping ? 0 : selectedZoneConfig.fee;
+    const { zone: selectedZoneConfig, deliveryFee, isFreeShipping } = await getDeliveryPricing(deliveryZone, subtotal);
     const totalAmount = subtotal + deliveryFee;
 
     return NextResponse.json({
       success: true,
       quote: {
+        canOrder: Boolean(db),
         subtotal,
         deliveryFee,
         discount: 0,

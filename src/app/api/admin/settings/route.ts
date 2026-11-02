@@ -65,7 +65,7 @@ export async function PUT(req: NextRequest) {
     const updated = await StoreSetting.findOneAndUpdate(
       { key: 'global_store_settings' },
       { $set: result.data },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return NextResponse.json({ success: true, settings: updated });

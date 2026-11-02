@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { normalizePhone } from '@/lib/phone';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Order } from '@/models/Order';
 import { checkRateLimit } from '@/lib/security/rateLimit';
@@ -9,8 +10,8 @@ const trackOrderSchema = z.object({
   phone: z
     .string()
     .trim()
-    .transform((val) => val.replace(/[^0-9]/g, ''))
-    .refine((val) => val.length >= 11, 'Valid 11-digit mobile number is required'),
+    .transform(normalizePhone)
+    .refine((val) => /^01[3-9]\d{8}$/.test(val), 'Valid 11-digit mobile number is required'),
 });
 
 export async function POST(req: NextRequest) {
@@ -67,10 +68,10 @@ export async function POST(req: NextRequest) {
             customerName: order.customer.name,
             deliveryZone: order.customer.deliveryZoneName,
             totalAmount: order.totalAmount,
-            courierName: order.courier?.provider || 'Steadfast / Pathao Courier',
+            courierName: order.courier?.provider || 'Not assigned yet',
             trackingCode: order.courier?.trackingCode || '',
             itemsCount: order.items?.length || 1,
-            timeline: order.timeline || [],
+            timeline: order.timeline.map((event) => ({ status: event.status, timestamp: event.timestamp })),
             createdAt: order.createdAt,
           },
         });
@@ -81,38 +82,6 @@ export async function POST(req: NextRequest) {
         { error: 'No order found matching this Order Number and Phone Number. Please check your information and try again.' },
         { status: 404 }
       );
-    }
-
-    // In local dev without DB connection, only match known demo number
-    if (cleanOrderNumber === 'ISH-DEMO-2026') {
-      return NextResponse.json({
-        success: true,
-        order: {
-          orderNumber: cleanOrderNumber,
-          status: 'confirmed',
-          customerName: 'Valued Customer',
-          deliveryZone: 'Inside Dhaka',
-          totalAmount: 1850,
-          courierName: 'Steadfast Courier Ltd',
-          trackingCode: 'STDF-20260101',
-          itemsCount: 1,
-          timeline: [
-            {
-              status: 'pending',
-              timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
-              note: 'Order placed via Cash on Delivery (COD)',
-              actor: 'Customer',
-            },
-            {
-              status: 'confirmed',
-              timestamp: new Date().toISOString(),
-              note: 'Order verified by Ishara merchant team. Preparing packaging.',
-              actor: 'Merchant Team',
-            },
-          ],
-          createdAt: new Date().toISOString(),
-        },
-      });
     }
 
     return NextResponse.json(

@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles, ShieldCheck, Truck, RotateCcw } from 'lucide-reac
 
 export default function HeroBanner() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#fdf5f7] via-[#faf6f2] to-[#faf6f2] py-8 sm:py-16">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#fdf5f7] via-[#faf6f2] to-[#faf6f2] py-6 sm:py-12">
       {/* Decorative Blur Orbs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#ebb3c2]/30 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#f4ecdf]/60 rounded-full blur-2xl pointer-events-none -ml-20 -mb-10" />
@@ -13,20 +13,20 @@ export default function HeroBanner() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Content Column */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+          <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#efe8e1] shadow-xs">
               <Sparkles className="w-4 h-4 text-[#b45f77]" />
               <span className="text-xs font-semibold text-[#b45f77] tracking-wider uppercase">
-                New Eid & Festive Collection &apos;26
+                Handpicked for your everyday
               </span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#201a1c] tracking-tight leading-[1.15]">
-              Elegance in Every <span className="text-[#b45f77]">Gesture</span>, Crafted for You.
+              Your everyday, <span className="text-[#b45f77]">beautifully</span> accessorised.
             </h1>
 
             <p className="text-sm sm:text-base text-[#6b5e62] max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Discover curated luxury handbags, 18K rose-gold jewelry, and beauty essentials. Handpicked for quality, packaged with love, and delivered directly to your doorstep.
+              Find your next favourite bag, jewellery or beauty essential. Choose what you love, order without an account, and pay cash on delivery.
             </p>
 
             {/* CTAs */}
@@ -65,7 +65,7 @@ export default function HeroBanner() {
 
           {/* Right Visual Image Column */}
           <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none aspect-4/5 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+            <div className="relative mx-auto max-w-md lg:max-w-none aspect-[4/3] lg:aspect-4/5 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
               <Image
                 src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1000&q=85"
                 alt="Ishara Luxury Collection"
@@ -83,15 +83,15 @@ export default function HeroBanner() {
                     Featured Spotlight
                   </p>
                   <h3 className="text-xs sm:text-sm font-bold text-[#201a1c]">
-                    Classic Mini Crossbody Bag
+                    Handbags for every day
                   </h3>
-                  <p className="text-xs font-extrabold text-[#b45f77] mt-0.5">৳1,850 BDT</p>
+                  <p className="text-xs font-extrabold text-[#b45f77] mt-0.5">Find your next favourite</p>
                 </div>
                 <Link
-                  href="/products/classic-mini-crossbody-bag"
+                  href="/shop?category=handbags"
                   className="px-3.5 py-2 bg-[#b45f77] text-white text-xs font-semibold rounded-xl hover:bg-[#9e4a62] transition-colors shadow-xs"
                 >
-                  Order Now
+                  Explore bags
                 </Link>
               </div>
             </div>

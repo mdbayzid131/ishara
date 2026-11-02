@@ -5,12 +5,10 @@ import {
   Megaphone,
   Tag,
   Plus,
-  Percent,
   TrendingUp,
   CheckCircle2,
   Copy,
   Trash2,
-  ExternalLink,
 } from 'lucide-react';
 
 interface PromoCode {
@@ -221,8 +219,8 @@ export default function AdminCampaignsPage() {
       {/* Coupons Table */}
       <div className="bg-white rounded-3xl border border-[#efe8e1] shadow-xs overflow-hidden">
         <div className="p-6 border-b border-[#efe8e1]">
-          <h2 className="text-base font-bold text-[#201a1c]">Active Promo Codes</h2>
-          <p className="text-xs text-[#8c7e83]">Customers can apply these codes during checkout.</p>
+          <h2 className="text-base font-bold text-[#201a1c]">Promo Code Preview</h2>
+          <p className="text-xs text-[#8c7e83]">Preview only: these example codes are not saved or applied at checkout.</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -326,7 +324,7 @@ export default function AdminCampaignsPage() {
                   </label>
                   <select
                     value={discountType}
-                    onChange={(e) => setDiscountType(e.target.value as any)}
+                    onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                     className="w-full px-3 py-2.5 bg-[#faf6f2] border border-[#efe8e1] rounded-xl text-xs font-semibold text-[#201a1c]"
                   >
                     <option value="percentage">Percentage (%)</option>

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Product } from '@/models/Product';
 import { PRODUCTS } from '@/data/mockProducts';
+import { STUDIO_PRODUCTS } from '@/data/studioCollection';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
 
 const createProductSchema = z.object({
@@ -41,19 +42,22 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
     const q = searchParams.get('q');
     const sort = searchParams.get('sort') || 'featured';
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50));
 
     const db = await connectToDatabase();
 
     if (db) {
-      const filter: Record<string, unknown> = { status: 'published' };
+      const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+      const includeUnpublished = searchParams.get('includeUnpublished') === '1' && adminToken && verifyAdminToken(adminToken);
+      const filter: Record<string, unknown> = includeUnpublished ? {} : { status: 'published' };
       if (category && category !== 'all') {
         filter.categorySlug = category;
       }
       if (q) {
+        const literalQuery = q.slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, (character) => `\\${character}`);
         filter.$or = [
-          { title: { $regex: q, $options: 'i' } },
-          { description: { $regex: q, $options: 'i' } },
+          { title: { $regex: literalQuery, $options: 'i' } },
+          { description: { $regex: literalQuery, $options: 'i' } },
         ];
       }
 
@@ -67,13 +71,11 @@ export async function GET(req: NextRequest) {
         .limit(limit)
         .lean();
 
-      if (products.length > 0) {
-        return NextResponse.json({ success: true, count: products.length, products });
-      }
+      return NextResponse.json({ success: true, count: products.length, products: products.map((product) => ({ ...product, id: String(product._id), variants: product.variants.map((variant) => ({ ...variant, id: variant.sku })) })) });
     }
 
     // Fallback to in-memory catalog
-    let list = [...PRODUCTS];
+    let list = [...STUDIO_PRODUCTS, ...PRODUCTS];
     if (category && category !== 'all') {
       list = list.filter((p) => p.categorySlug === category);
     }

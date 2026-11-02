@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connect';
 import { Category } from '@/models/Category';
 import { CATEGORIES } from '@/data/mockProducts';
+import { STUDIO_CATEGORIES } from '@/data/studioCollection';
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from '@/lib/auth';
 
 const categorySchema = z.object({
@@ -18,11 +19,9 @@ export async function GET() {
     const db = await connectToDatabase();
     if (db) {
       const categories = await Category.find({ isActive: true }).sort({ sortOrder: 1 }).lean();
-      if (categories.length > 0) {
-        return NextResponse.json({ success: true, categories });
-      }
+      return NextResponse.json({ success: true, categories: categories.map((category) => ({ ...category, id: String(category._id) })) });
     }
-    return NextResponse.json({ success: true, categories: CATEGORIES });
+    return NextResponse.json({ success: true, categories: [...STUDIO_CATEGORIES.map((category) => ({ ...category, id: category.slug, itemCount: 2 })), ...CATEGORIES] });
   } catch (error) {
     console.error('Categories GET error:', error);
     return NextResponse.json(

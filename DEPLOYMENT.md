@@ -71,13 +71,11 @@ export MONGODB_URI="mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/i
 npm run seed
 ```
 
-### Initial Super Admin Credentials
-- **Login URL**: `https://your-domain.com/admin/login`
-- **Email**: `admin@ishara.com.bd`
-- **Default Password**: `IsharaAdmin2026!`
+### Initial admin setup
 
-> ⚠️ **CRITICAL SECURITY ACTION:**
-> Log in immediately to the admin dashboard and change the default password from **Admin Settings**.
+Set ADMIN_EMAIL and ADMIN_PASSWORD in your local environment before seeding. ADMIN_PASSWORD must contain at least 12 characters. The seed script will create the initial admin if that email does not exist. Login does not automatically create accounts and there is no built-in default login.
+
+The current settings screen manages store settings, not passwords. Keep credentials in your environment or password manager. Review the seed script before running it on an existing database: it upserts sample catalog records.
 
 ---
 

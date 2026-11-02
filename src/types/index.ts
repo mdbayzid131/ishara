@@ -23,6 +23,7 @@ export interface ProductVariant {
 }
 
 export interface Product {
+  status?: 'draft' | 'published' | 'archived';
   id: string;
   slug: string;
   title: string;

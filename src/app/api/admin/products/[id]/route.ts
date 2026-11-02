@@ -9,7 +9,7 @@ const updateProductSchema = z.object({
   status: z.enum(['draft', 'published', 'archived']).optional(),
   basePrice: z.number().positive().optional(),
   compareAtPrice: z.number().positive().optional(),
-  totalStock: z.number().min(0).optional(),
+  totalStock: z.number().int().min(0).optional(),
   badge: z.string().optional(),
   variants: z
     .array(
@@ -17,7 +17,7 @@ const updateProductSchema = z.object({
         sku: z.string(),
         name: z.string(),
         price: z.number().optional(),
-        stock: z.number().min(0),
+        stock: z.number().int().min(0),
       })
     )
     .optional(),
@@ -49,14 +49,19 @@ export async function PATCH(
       const isObjectId = mongoose.Types.ObjectId.isValid(id);
       const query = isObjectId ? { _id: id } : { slug: id };
 
+      const existing = await Product.findOne(query).lean();
+      if (!existing) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
       const updateData: Record<string, unknown> = { ...parsed.data };
+      if (parsed.data.variants) {
+        updateData.variants = parsed.data.variants.map((variant) => ({ ...existing.variants.find((previous) => previous.sku === variant.sku), ...variant }));
+      }
 
       // If variants are provided, recompute totalStock
       if (parsed.data.variants && parsed.data.variants.length > 0) {
         updateData.totalStock = parsed.data.variants.reduce((acc, v) => acc + (v.stock || 0), 0);
       }
 
-      const updated = await Product.findOneAndUpdate(query, { $set: updateData }, { new: true }).lean();
+      const updated = await Product.findOneAndUpdate(query, { $set: updateData }, { returnDocument: 'after', runValidators: true }).lean();
 
       if (!updated) {
         return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -69,12 +74,7 @@ export async function PATCH(
       });
     }
 
-    // Fallback mode for local development
-    return NextResponse.json({
-      success: true,
-      message: 'Product updated in fallback mode',
-      product: { id, ...parsed.data },
-    });
+    return NextResponse.json({ error: 'Database not connected. Changes were not saved.' }, { status: 503 });
   } catch (error) {
     console.error('Admin product PATCH error:', error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
@@ -104,7 +104,7 @@ export async function DELETE(
       return NextResponse.json({ success: true, message: 'Product deleted successfully' });
     }
 
-    return NextResponse.json({ success: true, message: 'Product deleted in fallback mode' });
+    return NextResponse.json({ error: 'Database not connected. Changes were not saved.' }, { status: 503 });
   } catch (error) {
     console.error('Admin product DELETE error:', error);
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
